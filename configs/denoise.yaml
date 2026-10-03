@@ -1,0 +1,21 @@
+# Whole-run correction of video runs with a trained checkpoint
+defaults:
+  - paths: maguire
+  - data: grade
+  - _self_
+  - override hydra/job_logging: disabled
+  - override hydra/hydra_logging: disabled
+
+checkpoint: ???            # any checkpoint, from this repo or the original one
+output_name: ???           # folder under paths.denoise_output_root, e.g. motion_corrected_st_v4
+runs: first_2mo            # first_2mo | all_video
+source_root: ${paths.denoise_source_root}
+output_root: ${paths.denoise_output_root}/${output_name}
+device: cuda
+
+hydra:
+  run:
+    dir: ${output_root}
+  output_subdir: null
+  job:
+    chdir: false

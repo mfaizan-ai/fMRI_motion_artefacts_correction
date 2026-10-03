@@ -1,0 +1,6 @@
+# Ordered video sequences for temporal-consistency / FC losses (batch size forced to 1)
+defaults:
+  - psc
+  - _self_
+
+sequence_mode: true

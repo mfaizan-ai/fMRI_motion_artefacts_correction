@@ -1,0 +1,16 @@
+# @package _global_
+# st_v4_ddp_disc_temporal_roi: spatiotemporal model, temporal conv in the last D block, ROI discriminator
+run_name: st_v4
+model:
+  residual: true
+train:
+  epochs: 100
+  max_grad_norm: 3.0
+  d_update_every: 1
+  label_real: 1.0
+  label_fake: 0.0
+  r1:
+    weight: 0.5
+  roi:
+    enabled: true
+    w_cycle: 1.0

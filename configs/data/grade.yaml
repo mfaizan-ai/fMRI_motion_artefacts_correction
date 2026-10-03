@@ -1,0 +1,14 @@
+# Unpaired Grade 1 (clean, domain B) vs pooled Grades 2-6 (corrupted, domain A), 5-volume chunks
+name: grade
+chunk_metadata_csv: ${paths.grade_chunk_metadata_csv}
+run_stats_csv: ${paths.grade_run_stats_csv}
+splits_csv: ${paths.repo_root}/splits/grade_split_legacy.csv
+clean_grade: Grade 1
+grades_b: [Grade 2, Grade 3, Grade 4, Grade 5, Grade 6]
+task: null              # null = all tasks
+in_timepoints: 5
+cropped_shape: [60, 72, 56]
+spatial_dims: [64, 72, 56]   # axis 0 zero-padded 60 -> 64 so three stride-2 downsamplings divide evenly
+flip_prob: 0.0
+base_seed: 0
+sequence_mode: false
