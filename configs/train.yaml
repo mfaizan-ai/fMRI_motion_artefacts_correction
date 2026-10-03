@@ -1,0 +1,28 @@
+defaults:
+  - paths: maguire
+  - data: grade
+  - model: spatiotemporal
+  - train: default
+  - atlas: schaefer400
+  - _self_
+  - experiment: null
+  - override hydra/job_logging: disabled
+  - override hydra/hydra_logging: disabled
+
+run_name: ???
+run_dir: ${paths.runs_root}/${run_name}
+seed: 42
+deterministic: false
+
+wandb:
+  enabled: true
+  mode: offline           # compute nodes have no internet; wandb sync <run_dir>/wandb later
+  project: fmri-motion-correction
+  entity: null
+
+hydra:
+  run:
+    dir: ${run_dir}
+  output_subdir: null     # the trainer writes config.yaml + run_info.jsonl itself (rank 0 only)
+  job:
+    chdir: false

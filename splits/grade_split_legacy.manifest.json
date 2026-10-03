@@ -1,0 +1,14 @@
+{
+  "source": "/lustre/disk/home/users/mfaizan/motion_correction/cycleGANS_on_2d_images/pytorch-CycleGAN-and-pix2pix/data_preprocessing/motion_grades_chunk_5_dataset_hfiltered/chunk_metadata.csv",
+  "source_sha256": "58c716c913abb92243f921e796795e2aeec3a61070b32224b0aced82e24b315d",
+  "granularity": "subject_id x task",
+  "subjects_in_several_splits": 64,
+  "rows_per_split": {
+    "train": 217,
+    "test": 47,
+    "val": 47
+  },
+  "created_utc": "2026-10-01T14:10:10+00:00",
+  "git_commit": "unknown",
+  "git_dirty": true
+}

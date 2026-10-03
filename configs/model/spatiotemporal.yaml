@@ -1,0 +1,12 @@
+name: spatiotemporal
+content_base_ch: 64
+content_n_res: 5
+artefact_base_ch: 64
+global_code_dim: 64
+spatial_code_ch: 32
+disc_base_ch: 64
+num_disc_scales: 2
+temporal_k: 3          # TemporalConv1D kernel along T
+residual: false        # decoders predict a delta added to the input (inside the brain)
+use_convlstm: false    # replace every TemporalConv1D with a bidirectional ConvLSTM
+disc_temporal_diffs: false

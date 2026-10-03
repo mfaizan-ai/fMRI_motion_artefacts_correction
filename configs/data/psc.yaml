@@ -1,0 +1,9 @@
+# Legacy PSC-normalised chunks (A_corrupted / B_motion_free folders), resampled to spatial_dims
+name: psc
+root: ${paths.psc_dataset_root}
+in_timepoints: 20
+spatial_dims: [80, 96, 72]
+augment: true
+sequence_mode: false
+manifest_csv: ${paths.video_manifest_csv}
+chunk_metadata_csv: ${paths.video_chunk_metadata_csv}
