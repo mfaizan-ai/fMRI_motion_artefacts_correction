@@ -1,0 +1,8 @@
+# @package _global_
+# stv6: st_v4 with every temporal conv replaced by a bidirectional ConvLSTM
+defaults:
+  - st_v4
+
+run_name: stv6_convlstm
+model:
+  use_convlstm: true

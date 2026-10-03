@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# run outputs and large artefacts
+runs/
+outputs/
+logs/*
+!logs/.gitkeep
+wandb/
+*.pt
+*.nii
+*.nii.gz

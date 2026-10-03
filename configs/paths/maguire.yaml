@@ -1,0 +1,17 @@
+# The only file with absolute paths. Copy it for another cluster and select it with paths=<name>.
+repo_root: /lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion_aretefacts_correction_cycle_gans_updated
+runs_root: ${.repo_root}/runs
+
+grade_chunk_metadata_csv: /lustre/disk/home/users/mfaizan/motion_correction/cycleGANS_on_2d_images/pytorch-CycleGAN-and-pix2pix/data_preprocessing/motion_grades_chunk_5_dataset_hfiltered/chunk_metadata.csv
+grade_run_stats_csv: /lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion-artefacts-correction/all_dataset/run_normalization_stats_hfiltered.csv
+
+psc_dataset_root: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset/cyclegans_chunk5_dataset
+video_manifest_csv: ${.psc_dataset_root}/chunk5_subject_wise_order_video_data/video_sequence_manifest.csv
+video_chunk_metadata_csv: ${.psc_dataset_root}/chunk5_subject_wise_order_video_data/video_chunk_metadata_with_paths.csv
+
+atlas_2mo: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/templates/rois/Schaefer2018_400Parcels_7Networks_order_space-nihpd-02-05_2mm.nii.gz
+atlas_9mo: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/templates/rois/Schaefer2018_400Parcels_7Networks_order_space-nihpd-08-11_2mm.nii.gz
+
+# whole-run denoising: source runs on the cropped common-space grid, and where corrected runs go
+denoise_source_root: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset/brain_masked_cropped_hfiltered_normalized_to_common_space
+denoise_output_root: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset

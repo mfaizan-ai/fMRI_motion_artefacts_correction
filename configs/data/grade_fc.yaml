@@ -1,0 +1,8 @@
+# K-chunk examples from one scan and one grade, for FC estimated over K*T volumes.
+# Each epoch every scan is split into all its non-overlapping K-chunk sets.
+defaults:
+  - grade
+  - _self_
+
+name: grade_fc
+chunks_per_example: 4      # K; scans with fewer chunks than K are skipped
