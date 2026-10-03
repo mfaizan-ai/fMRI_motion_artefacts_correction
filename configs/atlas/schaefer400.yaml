@@ -1,0 +1,7 @@
+paths:
+  2mo: ${paths.atlas_2mo}
+  9mo: ${paths.atlas_9mo}
+# fixed per-age crop windows on the native (97, 116, 79) grid, the same ones used to cut the chunks
+crop_window:
+  2mo: {x: [17, 77], y: [26, 98], z: [11, 67]}
+  9mo: {x: [18, 78], y: [25, 97], z: [11, 67]}

@@ -1,0 +1,60 @@
+epochs: 300
+batch_size: 4           # per GPU
+num_workers: 8
+val_every: 5
+save_every: 10
+replay_buffer_size: 50
+ddp_timeout_minutes: 480   # other ranks wait at the barrier while rank 0 validates
+max_train_batches: null    # cap batches per epoch for smoke tests
+max_val_batches: null
+resume_from: null          # full state; latest.pt in the run dir is resumed automatically
+finetune_from: null        # weights only, fresh optimiser and schedule
+
+optim:
+  lr_G: 2.0e-4
+  lr_D: 5.0e-5
+  beta1: 0.5
+  beta2: 0.999
+
+schedule:                  # warmup -> constant until half-way -> linear decay
+  warmup_epochs: 5
+  warmup_start_factor: 0.01
+  final_factor: 1.0e-6
+
+loss:
+  adv: 1.0
+  cyc: 10.0
+  idt: 5.0
+  warmup_epochs: 20        # cyc/idt weights ramp from 1 to full over this many epochs
+
+max_grad_norm: 10.0        # generator gradient clipping
+d_update_every: 2
+label_real: 0.9            # LSGAN targets (label smoothing)
+label_fake: 0.1
+
+r1:
+  weight: 0.0              # R1 penalty gamma on real samples, 0 = off
+  every: 8                 # lazy regularisation interval (in D updates)
+
+roi:                       # ROI time-series discriminator and ROI-space cycle loss (chunk-level)
+  enabled: false
+  lambda_roi: 0.5          # per-ROI term weight relative to the whole-brain term
+  w_adv: 1.0
+  w_cycle: 0.0
+  lr: null                 # null = optim.lr_D
+
+sequence:                  # used only when data.sequence_mode
+  w_temporal: 1.0
+  w_fc: 0.0
+  fc:
+    mask_strategy: threshold   # threshold | topk | percentile
+    threshold: 0.3
+    top_k: null
+    percentile: null
+
+val_score:                 # each improvement scaled by its expected ideal size
+  tsnr_scale: 100.0
+  dvars_scale: 3.0
+  gs_std_scale: 0.3
+  smoothness_tolerance: 1.1
+  smoothness_penalty: 2.0

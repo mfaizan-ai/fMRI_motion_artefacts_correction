@@ -1,0 +1,13 @@
+# Legacy channel-as-time model
+name: disentangled
+content_base_ch: 64
+content_n_res: 5
+artefact_base_ch: 64
+global_code_dim: 64
+spatial_code_ch: 32
+disc_base_ch: 64
+num_disc_scales: 2
+residual: false
+disc_temporal_diffs: true   # append T-1 frame-difference channels to discriminator input
+temporal_k: 3
+use_convlstm: false
