@@ -10,6 +10,8 @@ from moco.models.outputs import ModelOutputs
 
 @dataclass
 class LossWeights:
+    """Weights of the generator loss terms; temporal and fc are used in sequence mode only."""
+
     adv: float = 1.0
     cyc: float = 10.0
     idt: float = 5.0
@@ -32,7 +34,17 @@ def lsgan_discriminator_loss(scores_real: list[Tensor], scores_fake: list[Tensor
 
 
 def generator_loss(out: ModelOutputs, x_a: Tensor, x_b: Tensor, weights: LossWeights) -> dict[str, Tensor]:
-    """Weighted adversarial + cycle (A->B->A, B->A->B) + identity (A->A, B->B) loss."""
+    """Generator loss for one batch.
+
+    Args:
+        out: Forward pass of the CycleGAN on (x_a, x_b).
+        x_a: (B, T, H, W, D) corrupted input.
+        x_b: (B, T, H, W, D) clean input.
+        weights: Loss weights for this epoch.
+
+    Returns:
+        Unweighted "adv", "cyc" (A->B->A, B->A->B), "idt" (A->A, B->B) and the weighted "total".
+    """
     adv = lsgan_generator_loss(out.score_fake_b) + lsgan_generator_loss(out.score_fake_a)
     cyc = F.l1_loss(out.x_cycle_a, x_a) + F.l1_loss(out.x_cycle_b, x_b)
     idt = F.l1_loss(out.x_self_a, x_a) + F.l1_loss(out.x_self_b, x_b)
@@ -41,7 +53,15 @@ def generator_loss(out: ModelOutputs, x_a: Tensor, x_b: Tensor, weights: LossWei
 
 
 def r1_gradient_penalty(discriminator: torch.nn.Module, real: Tensor) -> Tensor:
-    """Mean over the batch of ||grad_x D(x)||^2 on real samples (summed over scales)."""
+    """R1 penalty: mean over the batch of ||grad_x D(x)||^2 on real samples.
+
+    Args:
+        discriminator: Multi-scale discriminator returning a list of score maps.
+        real: (B, T, H, W, D) real samples.
+
+    Returns:
+        Scalar penalty; scores are summed over scales before taking the gradient.
+    """
     real = real.detach().requires_grad_(True)
     output = sum(s.sum() for s in discriminator(real))
     (grad,) = torch.autograd.grad(outputs=output, inputs=real, create_graph=True)

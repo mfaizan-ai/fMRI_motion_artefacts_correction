@@ -11,7 +11,18 @@ log = logging.getLogger(__name__)
 
 def save_checkpoint(path: Path, epoch: int, best_score: float, config: dict, model: torch.nn.Module,
                     optimisers: dict, schedulers: dict, roi_disc: torch.nn.Module | None = None) -> None:
-    """optimisers: {"opt_G", "opt_D"[, "opt_D_roi"]}, schedulers: {"sched_G", "sched_D"} (original repo keys)."""
+    """Save everything needed to resume training exactly, including all RNG states.
+
+    Args:
+        path: Output `.pt` file.
+        epoch: Last completed epoch.
+        best_score: Best validation score so far.
+        config: Resolved config, stored so the model can be rebuilt from the checkpoint alone.
+        model: Unwrapped (non-DDP) model.
+        optimisers: {"opt_G", "opt_D"[, "opt_D_roi"]}; keys match the original repo's checkpoints.
+        schedulers: {"sched_G", "sched_D"}.
+        roi_disc: ROI discriminator, if used.
+    """
     ckpt = {
         "epoch": epoch,
         "best_score": best_score,
@@ -31,7 +42,16 @@ def save_checkpoint(path: Path, epoch: int, best_score: float, config: dict, mod
 
 def load_checkpoint(path: Path, device: torch.device, model: torch.nn.Module, optimisers: dict,
                     schedulers: dict, roi_disc: torch.nn.Module | None = None) -> tuple[int, float]:
-    """Restore training state in place; returns (start_epoch, best_score). Works on original-repo checkpoints."""
+    """Restore training state in place; works on original-repo checkpoints too.
+
+    Args:
+        path: Checkpoint to resume from.
+        device: Device to map tensors to.
+        model, optimisers, schedulers, roi_disc: Objects to load into, keyed as in save_checkpoint.
+
+    Returns:
+        (epoch to start from, best validation score so far).
+    """
     ckpt = torch.load(path, map_location=device, weights_only=False)
     model.load_state_dict(ckpt["model"])
     for name, opt in optimisers.items():
@@ -46,6 +66,7 @@ def load_checkpoint(path: Path, device: torch.device, model: torch.nn.Module, op
         else:
             log.warning("checkpoint has no roi_disc state; ROI discriminator starts from random init")
 
+    # RNG states must be CPU ByteTensors, whatever map_location did to them
     torch.set_rng_state(ckpt["rng_torch"].cpu().byte())
     np.random.set_state(ckpt["rng_numpy"])
     random.setstate(ckpt["rng_python"])

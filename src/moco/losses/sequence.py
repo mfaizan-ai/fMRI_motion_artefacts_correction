@@ -12,8 +12,16 @@ MIN_ROI_STD = 1e-4
 
 
 def temporal_consistency_loss(input_seq: Tensor, corrected_seq: Tensor) -> Tensor:
-    """L1 between first temporal differences of input and corrected. Sequences: (S, T, X, Y, Z),
-    stitched to S*T volumes so chunk boundaries count too."""
+    """Keep the volume-to-volume changes of the corrected sequence close to the input's.
+
+    Args:
+        input_seq: (S, T, X, Y, Z) S consecutive chunks of the input.
+        corrected_seq: (S, T, X, Y, Z) their corrections.
+
+    Returns:
+        L1 between first temporal differences, computed on the stitched S*T volumes so the
+        jumps at chunk boundaries are penalised too.
+    """
     S, T = input_seq.shape[:2]
     x = input_seq.reshape(S * T, *input_seq.shape[2:]).detach()
     y = corrected_seq.reshape(S * T, *corrected_seq.shape[2:])
@@ -21,7 +29,14 @@ def temporal_consistency_loss(input_seq: Tensor, corrected_seq: Tensor) -> Tenso
 
 
 def pearson_corr_matrix(X: Tensor) -> Tensor:
-    """X: (T, N) -> (N, N) correlation. Degenerate (near-constant) ROIs get 0 off-diagonal, 1 on diagonal."""
+    """Differentiable Pearson correlation between columns.
+
+    Args:
+        X: (T, N) time series of N ROIs.
+
+    Returns:
+        (N, N) correlation; near-constant ROIs get 0 off-diagonal and 1 on the diagonal instead of NaN.
+    """
     X_centered = X - X.mean(dim=0, keepdim=True)
     std = X_centered.std(dim=0, keepdim=True)
     degenerate = std.squeeze(0) < MIN_ROI_STD
@@ -42,7 +57,21 @@ def check_fc_matrix(fc: Tensor, name: str = "fc", tol: float = 1e-2) -> None:
 
 def fc_strength_mask(fc_reference: Tensor, strategy: str, threshold: float = 0.3, top_k: int | None = None,
                      percentile: float | None = None) -> Tensor:
-    """Upper-triangle (N, N) bool mask of the 'meaningful' connections of fc_reference by |r|."""
+    """Select the strong connections of a reference FC matrix by |r|.
+
+    Args:
+        fc_reference: (N, N) correlation matrix.
+        strategy: "threshold" (|r| >= threshold), "topk" (k strongest) or "percentile".
+        threshold: Cutoff for "threshold".
+        top_k: Number of pairs for "topk".
+        percentile: 0-100 cutoff for "percentile".
+
+    Returns:
+        (N, N) bool mask, upper triangle only so each pair counts once.
+
+    Raises:
+        ValueError: If the strategy is unknown or its parameter is missing.
+    """
     n = fc_reference.shape[0]
     off_diag = torch.triu(torch.ones(n, n, device=fc_reference.device, dtype=torch.bool), diagonal=1)
     strength = fc_reference.abs()
@@ -70,8 +99,17 @@ def fc_loss(input_roi_ts: Tensor, corrected_roi_ts: Tensor, mask_strategy: str =
             stats: dict | None = None) -> Tensor:
     """L1 between input and corrected FC over the input's strong connections only.
 
-    ROI time series: (T_total, n_rois). The mask comes from the corrupted input, the subject's actual
-    (noisy) network; weak connections are left free to change. stats, if given, receives retention counts.
+    The mask comes from the corrupted input, the subject's actual (noisy) network; weak connections
+    are left free to change.
+
+    Args:
+        input_roi_ts: (T_total, n_rois) ROI time series of the input.
+        corrected_roi_ts: (T_total, n_rois) ROI time series of the correction.
+        mask_strategy, threshold, top_k, percentile: Passed to fc_strength_mask.
+        stats: If given, filled with n_retained, n_total_pairs and retained_fraction.
+
+    Returns:
+        Scalar loss; 0 if the mask keeps no pairs.
     """
     assert input_roi_ts.shape == corrected_roi_ts.shape
     fc_inp = pearson_corr_matrix(input_roi_ts)

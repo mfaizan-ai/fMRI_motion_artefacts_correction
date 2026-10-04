@@ -9,7 +9,18 @@ from moco.losses.gan import LossWeights
 
 def build_scheduler(optimiser: Optimizer, n_epochs: int, warmup: int, warmup_start_factor: float,
                     final_factor: float) -> SequentialLR:
-    """Per-epoch schedule: linear warmup, constant until the half-way point, then linear decay."""
+    """Per-epoch LR schedule: linear warmup, constant until the half-way point, then linear decay.
+
+    Args:
+        optimiser: Optimiser to schedule; call step() once per epoch.
+        n_epochs: Total training epochs.
+        warmup: Warmup epochs.
+        warmup_start_factor: LR multiplier at epoch 0.
+        final_factor: LR multiplier reached at the last epoch.
+
+    Returns:
+        The chained scheduler.
+    """
     half = n_epochs // 2
     return SequentialLR(
         optimiser,

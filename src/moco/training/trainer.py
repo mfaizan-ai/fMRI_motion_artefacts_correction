@@ -36,6 +36,7 @@ VAL_FIELDS = ["epoch", "val_cyc", "val_idt"] + [
 
 
 def _csv_fields(cfg: DictConfig) -> tuple[list[str], list[str]]:
+    """Train and val CSV columns for this config; extra terms only appear when they are computed."""
     train_fields, val_fields = list(TRAIN_FIELDS), list(VAL_FIELDS)
     if cfg.data.sequence_mode:
         train_fields += ["G_temporal", "G_fc", "G_fc_n_retained", "G_fc_retained_frac"]
@@ -53,6 +54,7 @@ def _csv_fields(cfg: DictConfig) -> tuple[list[str], list[str]]:
 
 
 def _check_config(cfg: DictConfig) -> None:
+    """Fail early on option combinations the training loop does not support."""
     if cfg.data.sequence_mode and (cfg.train.roi.enabled or cfg.train.roi.w_cycle > 0):
         raise ValueError("ROI discriminator / ROI cycle loss are chunk-level only, not for sequence mode")
     if cfg.data.name == "grade_fc":
@@ -62,6 +64,11 @@ def _check_config(cfg: DictConfig) -> None:
 
 
 def run_training(cfg: DictConfig) -> None:
+    """Train a CycleGAN; resumes from run_dir/latest.pt automatically if it exists.
+
+    Args:
+        cfg: Composed `configs/train.yaml` (data, model, train, atlas groups plus seed and run_dir).
+    """
     _check_config(cfg)
     dist = setup_distributed(cfg.train.ddp_timeout_minutes)
     # a different seed per rank diversifies sampling across GPUs

@@ -13,6 +13,14 @@ class ReplayBuffer:
         self.data: list[Tensor] = []
 
     def push_and_pop(self, x: Tensor) -> Tensor:
+        """Store the new fakes and return a batch mixing new and older ones.
+
+        Args:
+            x: (B, ...) fakes from the current generator step.
+
+        Returns:
+            (B, ...) on CPU; feeding D older fakes too stops it from chasing only the latest generator.
+        """
         out = []
         for i in range(x.size(0)):
             item = x[i].unsqueeze(0).detach().cpu()
