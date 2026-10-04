@@ -1,0 +1,137 @@
+paths:
+  repo_root: /lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion_aretefacts_correction_cycle_gans_updated
+  runs_root: /lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion_aretefacts_correction_cycle_gans_updated/runs
+  grade_chunk_metadata_csv: /lustre/disk/home/users/mfaizan/motion_correction/cycleGANS_on_2d_images/pytorch-CycleGAN-and-pix2pix/data_preprocessing/motion_grades_chunk_5_dataset_hfiltered/chunk_metadata.csv
+  grade_run_stats_csv: /lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion-artefacts-correction/all_dataset/run_normalization_stats_hfiltered.csv
+  psc_dataset_root: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset/cyclegans_chunk5_dataset
+  video_manifest_csv: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset/cyclegans_chunk5_dataset/chunk5_subject_wise_order_video_data/video_sequence_manifest.csv
+  video_chunk_metadata_csv: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset/cyclegans_chunk5_dataset/chunk5_subject_wise_order_video_data/video_chunk_metadata_with_paths.csv
+  atlas_2mo: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/templates/rois/Schaefer2018_400Parcels_7Networks_order_space-nihpd-02-05_2mm.nii.gz
+  atlas_9mo: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/templates/rois/Schaefer2018_400Parcels_7Networks_order_space-nihpd-08-11_2mm.nii.gz
+  denoise_source_root: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset/brain_masked_cropped_hfiltered_normalized_to_common_space
+  denoise_output_root: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset
+data:
+  name: grade
+  chunk_metadata_csv: /lustre/disk/home/users/mfaizan/motion_correction/cycleGANS_on_2d_images/pytorch-CycleGAN-and-pix2pix/data_preprocessing/motion_grades_chunk_5_dataset_hfiltered/chunk_metadata.csv
+  run_stats_csv: /lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion-artefacts-correction/all_dataset/run_normalization_stats_hfiltered.csv
+  splits_csv: /lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion_aretefacts_correction_cycle_gans_updated/splits/grade_split_legacy.csv
+  clean_grade: Grade 1
+  grades_b:
+  - Grade 2
+  - Grade 3
+  - Grade 4
+  - Grade 5
+  - Grade 6
+  task: null
+  in_timepoints: 5
+  cropped_shape:
+  - 60
+  - 72
+  - 56
+  spatial_dims:
+  - 64
+  - 72
+  - 56
+  flip_prob: 0.0
+  base_seed: 0
+  sequence_mode: false
+model:
+  name: spatiotemporal
+  content_base_ch: 64
+  content_n_res: 5
+  artefact_base_ch: 64
+  global_code_dim: 64
+  spatial_code_ch: 32
+  disc_base_ch: 64
+  num_disc_scales: 2
+  temporal_k: 3
+  residual: true
+  use_convlstm: false
+  disc_temporal_diffs: false
+train:
+  epochs: 1
+  batch_size: 4
+  num_workers: 2
+  val_every: 1
+  save_every: 1
+  replay_buffer_size: 50
+  ddp_timeout_minutes: 480
+  max_train_batches: 6
+  max_val_batches: 3
+  resume_from: null
+  finetune_from: null
+  optim:
+    lr_G: 0.0002
+    lr_D: 5.0e-05
+    beta1: 0.5
+    beta2: 0.999
+  schedule:
+    warmup_epochs: 5
+    warmup_start_factor: 0.01
+    final_factor: 1.0e-06
+  loss:
+    adv: 1.0
+    cyc: 10.0
+    idt: 5.0
+    warmup_epochs: 20
+  max_grad_norm: 3.0
+  d_update_every: 1
+  label_real: 1.0
+  label_fake: 0.0
+  r1:
+    weight: 0.5
+    every: 8
+  roi:
+    enabled: true
+    lambda_roi: 0.5
+    w_adv: 1.0
+    w_cycle: 1.0
+    lr: null
+  sequence:
+    w_temporal: 1.0
+    w_fc: 0.0
+    fc:
+      mask_strategy: threshold
+      threshold: 0.3
+      top_k: null
+      percentile: null
+  val_score:
+    tsnr_scale: 100.0
+    dvars_scale: 3.0
+    gs_std_scale: 0.3
+    smoothness_tolerance: 1.1
+    smoothness_penalty: 2.0
+atlas:
+  paths:
+    2mo: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/templates/rois/Schaefer2018_400Parcels_7Networks_order_space-nihpd-02-05_2mm.nii.gz
+    9mo: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/templates/rois/Schaefer2018_400Parcels_7Networks_order_space-nihpd-08-11_2mm.nii.gz
+  crop_window:
+    2mo:
+      x:
+      - 17
+      - 77
+      'y':
+      - 26
+      - 98
+      z:
+      - 11
+      - 67
+    9mo:
+      x:
+      - 18
+      - 78
+      'y':
+      - 25
+      - 97
+      z:
+      - 11
+      - 67
+run_name: _equivalence/new2
+run_dir: /lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion_aretefacts_correction_cycle_gans_updated/runs/_equivalence/new2
+seed: 42
+deterministic: true
+wandb:
+  enabled: false
+  mode: offline
+  project: fmri-motion-correction
+  entity: null

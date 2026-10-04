@@ -11,8 +11,8 @@
 #SBATCH --time=3-00:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:4
-set -euo pipefail
-source ~/.bashrc
+source ~/.bashrc  # before strict mode: /etc/bashrc reads unset variables
 conda activate moco
+set -euo pipefail
 cd "$SLURM_SUBMIT_DIR"
 torchrun --standalone --nproc_per_node=4 scripts/train.py "$@"
