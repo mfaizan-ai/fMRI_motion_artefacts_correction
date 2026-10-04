@@ -1,7 +1,8 @@
 import numpy as np
+import pytest
 import torch
 
-from moco.evaluation.denoise import correct_run
+from moco.evaluation.denoise import check_output_root, correct_run
 
 
 class Identity(torch.nn.Module):
@@ -18,3 +19,12 @@ def test_correct_run_roundtrips_with_identity_model():
     assert out.shape == volume.shape
     np.testing.assert_allclose(out, volume, rtol=1e-5)
     assert np.all(out[:5] == 0)
+
+
+def test_check_output_root_refuses_non_empty_folder(tmp_path):
+    check_output_root(tmp_path / "new", overwrite=False)
+    check_output_root(tmp_path, overwrite=False)  # empty dir, as Hydra creates it
+    (tmp_path / "denoise_log.csv").write_text("")
+    with pytest.raises(SystemExit):
+        check_output_root(tmp_path, overwrite=False)
+    check_output_root(tmp_path, overwrite=True)
