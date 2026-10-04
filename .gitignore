@@ -3,18 +3,17 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
-.ipynb_checkpoints/
-.vscode/
-
-# run outputs and large artefacts; runs/_equivalence holds the small old-vs-new reference results
 runs/*
 !runs/_equivalence/
+.vscode/
+
+# run outputs and large artefacts
+runs/
 outputs/
-multirun/
 logs/*
 !logs/.gitkeep
 wandb/
 *.pt
 *.nii
 *.nii.gz
-CLAUDE.md
+CLAUDECODE.md
