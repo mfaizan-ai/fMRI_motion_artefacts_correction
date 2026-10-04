@@ -8,7 +8,6 @@ runs/*
 .vscode/
 
 # run outputs and large artefacts
-runs/
 outputs/
 logs/*
 !logs/.gitkeep
@@ -16,4 +15,4 @@ wandb/
 *.pt
 *.nii
 *.nii.gz
-CLAUDECODE.md
+CLAUDE.local.md
