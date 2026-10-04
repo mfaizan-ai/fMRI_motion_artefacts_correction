@@ -11,6 +11,7 @@ from moco.utils.run_info import save_run_info
 
 @hydra.main(config_path="../configs", config_name="denoise", version_base="1.3")
 def main(cfg: DictConfig) -> None:
+    # check first: logging and run info below would otherwise make the folder non-empty
     check_output_root(Path(cfg.output_root), cfg.overwrite)
     setup_logging(Path(cfg.output_root) / "denoise.log")
     save_run_info(Path(cfg.output_root), cfg)

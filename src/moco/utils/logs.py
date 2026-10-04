@@ -6,7 +6,12 @@ from pathlib import Path
 
 
 def setup_logging(log_file: Path | None = None, enabled: bool = True) -> None:
-    """INFO to stdout (and log_file). enabled=False silences non-main DDP ranks."""
+    """Send log records to stdout and, optionally, a file.
+
+    Args:
+        log_file: File to also log to; parent folders are created.
+        enabled: False raises the level to WARNING, used to silence non-main DDP ranks.
+    """
     handlers: list[logging.Handler] = [logging.StreamHandler(sys.stdout)]
     if log_file is not None:
         log_file.parent.mkdir(parents=True, exist_ok=True)
