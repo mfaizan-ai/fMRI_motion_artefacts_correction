@@ -14,4 +14,4 @@ atlas_9mo: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/template
 
 # whole-run denoising: source runs on the cropped common-space grid, and where corrected runs go
 denoise_source_root: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset/brain_masked_cropped_hfiltered_normalized_to_common_space
-denoise_output_root: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset
+denoise_output_root: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset/motion_denoised_data
