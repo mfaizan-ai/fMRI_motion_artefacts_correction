@@ -6,8 +6,8 @@ defaults:
   - atlas: schaefer400
   - _self_
   - experiment: null
-  - override hydra/job_logging: disabled
-  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: none
+  - override hydra/hydra_logging: none
 
 run_name: ???
 run_dir: ${paths.runs_root}/${run_name}

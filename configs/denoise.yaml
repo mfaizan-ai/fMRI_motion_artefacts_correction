@@ -3,8 +3,8 @@ defaults:
   - paths: maguire
   - data: grade
   - _self_
-  - override hydra/job_logging: disabled
-  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: none
+  - override hydra/hydra_logging: none
 
 checkpoint: ???            # any checkpoint, from this repo or the original one
 output_name: ???           # folder under paths.denoise_output_root, e.g. motion_corrected_st_v4

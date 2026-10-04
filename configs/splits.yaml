@@ -2,8 +2,8 @@
 defaults:
   - paths: maguire
   - _self_
-  - override hydra/job_logging: disabled
-  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: none
+  - override hydra/hydra_logging: none
 
 chunk_metadata_csv: ${paths.grade_chunk_metadata_csv}
 name: grade_subject_split

@@ -3,8 +3,8 @@ defaults:
   - paths: maguire
   - data: grade
   - _self_
-  - override hydra/job_logging: disabled
-  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: none
+  - override hydra/hydra_logging: none
 
 checkpoint: ???
 output_dir: ???          # e.g. ${paths.runs_root}/st_v4/test

@@ -28,3 +28,14 @@ def test_check_output_root_refuses_non_empty_folder(tmp_path):
     with pytest.raises(SystemExit):
         check_output_root(tmp_path, overwrite=False)
     check_output_root(tmp_path, overwrite=True)
+
+
+@pytest.mark.parametrize("config_name", ["denoise", "evaluate", "splits", "train"])
+def test_hydra_logging_keeps_module_loggers(config_name):
+    """Hydra's `disabled` preset silences every `moco.*` logger created at import, leaving job logs empty."""
+    from hydra import compose, initialize
+
+    with initialize(config_path="../configs", version_base="1.3"):
+        cfg = compose(config_name, return_hydra_config=True)
+    for preset in (cfg.hydra.job_logging, cfg.hydra.hydra_logging):
+        assert preset.disable_existing_loggers is False

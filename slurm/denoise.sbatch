@@ -1,7 +1,7 @@
 #!/bin/bash
 # Whole-run correction:
 #   sbatch slurm/denoise.sbatch checkpoint=runs/st_v4/best_model.pt output_name=motion_corrected_st_v4 runs=all_video
-#SBATCH --job-name=moco_denoise
+#SBATCH --job-name=moco_denoise_stv6_convlstm
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 #SBATCH --ntasks=1
