@@ -1,0 +1,18 @@
+# SLURM job record
+
+One row per submitted job: what it was for, and where its output went. Logs are in
+`logs/<job-name>_<job-id>.{out,err}`.
+
+| Date | Job ID | Job name | Purpose | Command | Output |
+|---|---|---|---|---|---|
+| 2026-10-04 | 42482 | moco_denoise_stv6_convlstm | Denoise the first video run of each 2-month subject with stv6 | `sbatch slurm/denoise.sbatch checkpoint=runs/stv6_convlstm_cycleGANS/best_model.pt output_name=motion_corrected_stv6_convlstm_first_run_video_data` | `paths.denoise_output_root/motion_corrected_stv6_convlstm_first_run_video_data` |
+| 2026-10-04 | 42659 | moco_evaluate_convsltm_stv6 | Test metrics for stv6. Failed: `checkpoint=` was the folder, not the `.pt` file | `sbatch slurm/evaluate.sbatch checkpoint=runs/stv6_convlstm_cycleGANS output_dir=runs/stv6_convlstm_cycleGANS` | none |
+| 2026-10-04 | 42660 | moco_evaluate_convsltm_stv6 | Test metrics for stv6 | `sbatch slurm/evaluate.sbatch checkpoint=runs/stv6_convlstm_cycleGANS/best_model.pt output_dir=runs/stv6_convlstm_cycleGANS/test` | `runs/stv6_convlstm_cycleGANS/test` |
+| 2026-10-04 | 42661 | moco_evaluate_convsltm_stv6 | Accidental duplicate of 42660, cancelled | same as 42660 | none |
+| 2026-10-04 | 42662 | pipeline_qc_smoke | Pipeline QC smoke test, raw, 4 subjects, 5 repeats | `sbatch --job-name=pipeline_qc_smoke --time=00:30:00 slurm/pipeline_qc.sbatch source=raw max_subjects=4 modularity.repeats=5 qc_root=runs/_checks/pipeline_qc_smoke` | `runs/_checks/pipeline_qc_smoke/original_data` |
+| 2026-10-04 | 42663 | pipeline_qc_smoke_stv6 | Pipeline QC smoke test, stv6 denoised, 4 subjects, 5 repeats | `sbatch --job-name=pipeline_qc_smoke_stv6 --time=00:30:00 slurm/pipeline_qc.sbatch source=motion_corrected_stv6_convlstm_first_run_video_data max_subjects=4 modularity.repeats=5 qc_root=runs/_checks/pipeline_qc_smoke` | `runs/_checks/pipeline_qc_smoke/motion_corrected_stv6_convlstm_first_run_video_data` |
+| 2026-10-04 | 42664 | pipeline_qc_raw | Pipeline QC of the original runs, 128 subjects; also the old-vs-new equivalence check | `sbatch --job-name=pipeline_qc_raw slurm/pipeline_qc.sbatch source=raw` | `motion_denoising_qc/original_data` |
+| 2026-10-04 | 42665 | pipeline_qc_stv6 | Pipeline QC of the stv6-denoised runs, 128 subjects | `sbatch --job-name=pipeline_qc_stv6 slurm/pipeline_qc.sbatch source=motion_corrected_stv6_convlstm_first_run_video_data` | `motion_denoising_qc/motion_corrected_stv6_convlstm_first_run_video_data` |
+| 2026-10-04 | 42668 | plot_pipeline_qc_raw_vs_stv6 | First render of the pipeline-QC comparison figures (later reruns ran on the login node, under 1 min) | `sbatch --job-name=plot_pipeline_qc_raw_vs_stv6 --cpus-per-task=4 --mem=16G --time=00:30:00 --wrap="python scripts/visualization/plot_pipeline_qc.py"` | `motion_denoising_qc/figures/raw_vs_stv6` |
+| 2026-10-04 | 42669 | pipeline_qc_stv4 | Pipeline QC of the original repo's st_v4-denoised runs, 128 subjects; also the stv4 equivalence check | `sbatch --job-name=pipeline_qc_stv4 slurm/pipeline_qc.sbatch source=motion_corrected_st_v4 'denoised_root=${paths.legacy_denoised_root}'` | `motion_denoising_qc/motion_corrected_st_v4` |
+| 2026-10-04 | 42670 | plot_pipeline_qc_raw_vs_stv4_vs_stv6 | Three-way pipeline-QC figures (Raw, stv4, stv6): coloured Q box plot, 1×3 distributions, axial top-2% FC edges; waits for 42669 | `sbatch --dependency=afterok:42669 --job-name=plot_pipeline_qc_raw_vs_stv4_vs_stv6 --cpus-per-task=4 --mem=16G --time=00:30:00 --output=logs/%x_%j.out --error=logs/%x_%j.err --wrap="source ~/.bashrc && conda activate moco && python scripts/visualization/plot_pipeline_qc.py"` | `motion_denoising_qc/figures/raw_vs_stv4_vs_stv6` |

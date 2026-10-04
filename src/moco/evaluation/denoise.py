@@ -1,4 +1,6 @@
 """Whole-run motion correction: normalise a run, correct it chunk by chunk, write it back in BOLD units."""
+import hashlib
+import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -55,6 +57,13 @@ def correct_run(volume: np.ndarray, median: float, scale: float, model: torch.nn
     return bold.transpose(1, 2, 3, 0)
 
 
+def corrected_path(source_volume_path: Path, source_root: Path, output_root: Path) -> Path:
+    """Where a denoised run lives: the source's path relative to source_root, under output_root,
+    with a `_corrected` suffix (the convention of both this repo and the original one)."""
+    relative = source_volume_path.parent.relative_to(source_root)
+    return output_root / relative / source_volume_path.name.replace(".nii.gz", "_corrected.nii.gz")
+
+
 def select_runs(chunk_metadata_csv: str, which: str) -> pd.DataFrame:
     """Pick the video runs to denoise from the chunk metadata.
 
@@ -64,14 +73,15 @@ def select_runs(chunk_metadata_csv: str, which: str) -> pd.DataFrame:
             "all_video" = every video run at both ages.
 
     Returns:
-        One row per run with subject_id, session_id, run_id, source_volume_path, sorted by subject.
+        One row per run with subject_id, session_id, run_id, source_volume_path, fd_path, tr_seconds,
+        sorted by subject.
 
     Raises:
         ValueError: If `which` is not one of the two options.
     """
     meta = pd.read_csv(chunk_metadata_csv, dtype={"session_id": str, "run_id": str})  # keep "002", not 2
     video = meta[meta["task"] == "videos"]
-    cols = ["subject_id", "session_id", "run_id", "source_volume_path"]
+    cols = ["subject_id", "session_id", "run_id", "source_volume_path", "fd_path", "tr_seconds"]
     if which == "all_video":
         return video[cols].drop_duplicates().sort_values(["subject_id", "session_id", "run_id"])
     if which == "first_2mo":
@@ -98,6 +108,37 @@ def check_output_root(output_root: Path, overwrite: bool) -> None:
                      f"or pass overwrite=true to overwrite its runs.")
 
 
+def write_manifest(output_root: Path, checkpoint: Path, epoch: int, chunk_t: int, padded_h: int,
+                   runs: pd.DataFrame, cfg: DictConfig) -> None:
+    """Describe how the denoised folder was made in output_root/manifest.json.
+
+    Args:
+        output_root: Denoise output folder.
+        checkpoint: Checkpoint used; its sha256 pins the exact weights.
+        epoch: Checkpoint epoch.
+        chunk_t: Volumes per chunk, as read from the checkpoint.
+        padded_h: Padded axis-0 size, as read from the checkpoint.
+        runs: Selected runs, one row each with subject_id, session_id, run_id.
+        cfg: Composed `configs/denoise.yaml`.
+    """
+    manifest = {
+        "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "checkpoint": str(checkpoint),
+        "checkpoint_sha256": hashlib.sha256(checkpoint.read_bytes()).hexdigest(),
+        "checkpoint_epoch": epoch,
+        "chunk_timepoints": chunk_t,
+        "padded_axis0": padded_h,
+        "runs": cfg.runs,
+        "n_runs": len(runs),
+        "source_root": str(cfg.source_root),
+        "run_stats_csv": str(cfg.data.run_stats_csv),
+        "chunk_metadata_csv": str(cfg.data.chunk_metadata_csv),
+        **git_state(),
+    }
+    output_root.mkdir(parents=True, exist_ok=True)
+    (output_root / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+
+
 def run_denoise(cfg: DictConfig) -> None:
     """Denoise every selected run and save it under output_root, mirroring the source directory tree.
 
@@ -113,6 +154,7 @@ def run_denoise(cfg: DictConfig) -> None:
     runs = select_runs(cfg.data.chunk_metadata_csv, cfg.runs)
     source_root, output_root = Path(cfg.source_root), Path(cfg.output_root)
     log.info("denoising %d runs with %s (epoch %d)", len(runs), cfg.checkpoint, ckpt["epoch"])
+    write_manifest(output_root, Path(cfg.checkpoint), ckpt["epoch"], chunk_t, padded_h, runs, cfg)
     log_path = output_root / "denoise_log.csv"
     provenance = {"checkpoint": str(cfg.checkpoint), **git_state()}
 
@@ -134,10 +176,7 @@ def run_denoise(cfg: DictConfig) -> None:
         img = nib.load(row.source_volume_path)
         corrected = correct_run(np.asarray(img.dataobj, dtype=np.float32), *run_stats[key], model, cfg.device,
                                 chunk_t, padded_h)
-        # same relative path as the source, with a _corrected suffix
-        source = Path(row.source_volume_path)
-        out_path = output_root / source.parent.relative_to(source_root) / source.name.replace(".nii.gz",
-                                                                                              "_corrected.nii.gz")
+        out_path = corrected_path(Path(row.source_volume_path), source_root, output_root)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         nib.save(nib.Nifti1Image(corrected, img.affine, img.header), out_path)  # keep source affine/header
         append_log({**record, "output_path": str(out_path), "status": "ok"})

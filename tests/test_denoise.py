@@ -1,8 +1,13 @@
+import hashlib
+import json
+
 import numpy as np
+import pandas as pd
 import pytest
 import torch
+from omegaconf import OmegaConf
 
-from moco.evaluation.denoise import check_output_root, correct_run
+from moco.evaluation.denoise import check_output_root, correct_run, write_manifest
 
 
 class Identity(torch.nn.Module):
@@ -28,6 +33,19 @@ def test_check_output_root_refuses_non_empty_folder(tmp_path):
     with pytest.raises(SystemExit):
         check_output_root(tmp_path, overwrite=False)
     check_output_root(tmp_path, overwrite=True)
+
+
+def test_write_manifest_pins_checkpoint_and_run_selection(tmp_path):
+    checkpoint = tmp_path / "best_model.pt"
+    checkpoint.write_bytes(b"weights")
+    runs = pd.DataFrame({"subject_id": ["a", "b"], "session_id": [1, 1], "run_id": [1, 2]})
+    cfg = OmegaConf.create({"runs": "first_2mo", "source_root": "/src",
+                            "data": {"run_stats_csv": "/stats.csv", "chunk_metadata_csv": "/chunks.csv"}})
+    write_manifest(tmp_path / "out", checkpoint, epoch=7, chunk_t=5, padded_h=64, runs=runs, cfg=cfg)
+    manifest = json.loads((tmp_path / "out" / "manifest.json").read_text())
+    assert manifest["checkpoint_sha256"] == hashlib.sha256(b"weights").hexdigest()
+    assert (manifest["checkpoint_epoch"], manifest["chunk_timepoints"], manifest["n_runs"]) == (7, 5, 2)
+    assert manifest["runs"] == "first_2mo"
 
 
 @pytest.mark.parametrize("config_name", ["denoise", "evaluate", "splits", "train"])

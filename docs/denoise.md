@@ -65,6 +65,7 @@ python scripts/denoise.py checkpoint=runs/st_v4_ddp_disc_temporal_roi/best_model
 <denoise_output_root>/<output_name>/
 ├── _subject_id_<ID>/_referencetype_standard/_run_<NNN>_session_<N>_task_name_videos/
 │   └── <source name>_corrected.nii.gz    # same tree as source_root
+├── manifest.json      # checkpoint path + sha256 + epoch, chunk length, run selection, input CSVs, git state
 ├── config.yaml        # resolved config
 ├── run_info.jsonl     # git commit, dirty flag, SLURM job ID, host (one line per start)
 ├── denoise.log
