@@ -66,13 +66,18 @@ SLURM job ID, host, one line per (re)start), `train.log`, per-epoch CSVs and che
   the original repo (their `args`), giving identical outputs.
 - Splits are read from `splits/`, never recomputed at train time.
 
-## Known issue: the legacy split is not subject-level
+## Splits
 
-`splits/grade_split_legacy.csv` reproduces the original runs exactly but assigns splits per
-(subject, task): 64 of 180 subjects have, for example, rest chunks in train and video chunks in
-test, and 2-month (`ICC105`) and 9-month (`ICC105A`) visits of the same infant can land in
-different splits. A subject-level split (by infant, both visits together) should be frozen as a
-new file before reporting held-out results.
+- `splits/grade_subject_split.csv` (default): one row per `subject_id`, 70/15/15, stratified by age group
+  and by each subject's share of Grade 4-6 chunks. Made by `python scripts/make_splits.py`; the manifest
+  records the source CSV and its SHA-256, seed, ratios and per-split counts. A different dataset gets its
+  own split: `python scripts/make_splits.py name=<new> chunk_metadata_csv=<path>`. Existing files are never
+  overwritten unless `overwrite=true`.
+- `splits/grade_split_legacy.csv`: the original per (subject, task) assignment, pinned by
+  `experiment=st_v4` / `stv6_convlstm` so those runs reproduce. 64 subjects have chunks in more than one
+  split there, so it should not be used for new held-out results.
+- The unit is the subject ID, so the 2- and 9-month visits of one infant (e.g. ICC105 / ICC105A) can
+  fall in different splits.
 
 ## Checks
 

@@ -2,7 +2,7 @@
 name: grade
 chunk_metadata_csv: ${paths.grade_chunk_metadata_csv}
 run_stats_csv: ${paths.grade_run_stats_csv}
-splits_csv: ${paths.repo_root}/splits/grade_split_legacy.csv
+splits_csv: ${paths.repo_root}/splits/grade_subject_split.csv   # frozen subject-level split (scripts/make_splits.py)
 clean_grade: Grade 1
 grades_b: [Grade 2, Grade 3, Grade 4, Grade 5, Grade 6]
 task: null              # null = all tasks

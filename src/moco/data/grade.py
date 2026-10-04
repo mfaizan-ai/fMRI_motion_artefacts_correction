@@ -26,20 +26,23 @@ def load_run_stats(run_stats_csv: str) -> dict[RunKey, tuple[float, float]]:
         return {run_key(row): (float(row["median"]), float(row["scale"])) for row in csv.DictReader(f)}
 
 
-def load_split_assignment(splits_csv: str) -> dict[tuple[str, str], str]:
-    """Frozen (subject_id, task) -> split."""
+def load_split_assignment(splits_csv: str) -> tuple[tuple[str, ...], dict[tuple[str, ...], str]]:
+    """Frozen split file -> (key columns, key -> split). Keys are (subject_id,) for subject-level splits
+    and (subject_id, task) for the legacy split."""
     with open(splits_csv) as f:
-        return {(row["subject_id"], row["task"]): row["split"] for row in csv.DictReader(f)}
+        rows = list(csv.DictReader(f))
+    key_cols = tuple(c for c in ("subject_id", "task") if c in rows[0])
+    return key_cols, {tuple(row[c] for c in key_cols): row["split"] for row in rows}
 
 
 def load_chunk_rows(chunk_metadata_csv: str, splits_csv: str, split: str,
                     task: str | None = None) -> dict[str, list[dict]]:
     """Chunk rows of one split (optionally one task), grouped by grade, in file order."""
-    assignment = load_split_assignment(splits_csv)
+    key_cols, assignment = load_split_assignment(splits_csv)
     rows_by_grade: dict[str, list[dict]] = {}
     with open(chunk_metadata_csv) as f:
         for row in csv.DictReader(f):
-            if assignment[(row["subject_id"], row["task"])] != split:
+            if assignment[tuple(row[c] for c in key_cols)] != split:
                 continue
             if task is not None and row["task"] != task:
                 continue
