@@ -6,6 +6,7 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 import torch
+from omegaconf import DictConfig
 
 from moco.data.grade import denormalize_chunk, load_chunk_rows, load_run_stats, normalize_volume, pad_axis0, run_key
 from moco.evaluation.metrics import fmri_metrics
@@ -14,8 +15,14 @@ from moco.models.build import load_model
 log = logging.getLogger(__name__)
 
 
-def run_test(cfg) -> None:
-    """Test split, video task, 2-month subjects only (as in the original evaluation)."""
+def run_test(cfg: DictConfig) -> None:
+    """Correct every test chunk and write per-chunk and per-grade metrics to cfg.output_dir.
+
+    Only the video task of 2-month subjects is used, as in the original evaluation.
+
+    Args:
+        cfg: Composed `configs/evaluate.yaml`; uses checkpoint, device, output_dir and the data group.
+    """
     model, ckpt = load_model(cfg.checkpoint, cfg.device)
     run_stats = load_run_stats(cfg.data.run_stats_csv)
     rows_by_grade = load_chunk_rows(cfg.data.chunk_metadata_csv, cfg.data.splits_csv, "test", task="videos")
@@ -33,7 +40,7 @@ def run_test(cfg) -> None:
                 x_out = model.correct(x_in)
             median_t = torch.tensor([median], device=cfg.device)
             scale_t = torch.tensor([scale], device=cfg.device)
-            brain = x_in != 0
+            brain = x_in != 0  # mask from the input; the model's background is not exactly 0
             metrics = fmri_metrics(denormalize_chunk(x_in, median_t, scale_t, brain),
                                    denormalize_chunk(x_out, median_t, scale_t, brain))
             records.append({**metrics, "grade": grade, "subject_id": row["subject_id"],

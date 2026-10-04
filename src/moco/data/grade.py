@@ -13,6 +13,7 @@ RunKey = tuple[str, str, str, str]  # (subject_id, session_id, run_id, task)
 
 
 def run_key(row: dict) -> RunKey:
+    """Key into the run-stats table for a chunk-metadata or run-stats CSV row."""
     return (row["subject_id"], row["session_id"], row["run_id"], row["task"])
 
 
@@ -30,8 +31,14 @@ def load_run_stats(run_stats_csv: str) -> dict[RunKey, tuple[float, float]]:
 
 
 def load_split_assignment(splits_csv: str) -> tuple[tuple[str, ...], dict[tuple[str, ...], str]]:
-    """Frozen split file -> (key columns, key -> split). Keys are (subject_id,) for subject-level splits
-    and (subject_id, task) for the legacy split."""
+    """Read a frozen split file.
+
+    Args:
+        splits_csv: Subject-level split (subject_id, split) or legacy split (subject_id, task, split).
+
+    Returns:
+        (key columns, key -> split); keys are (subject_id,) or (subject_id, task) to match the file.
+    """
     with open(splits_csv) as f:
         rows = list(csv.DictReader(f))
     key_cols = tuple(c for c in ("subject_id", "task") if c in rows[0])
@@ -40,7 +47,17 @@ def load_split_assignment(splits_csv: str) -> tuple[tuple[str, ...], dict[tuple[
 
 def load_chunk_rows(chunk_metadata_csv: str, splits_csv: str, split: str,
                     task: str | None = None) -> dict[str, list[dict]]:
-    """Chunk rows of one split (optionally one task), grouped by grade, in file order."""
+    """Chunk-metadata rows that belong to one split.
+
+    Args:
+        chunk_metadata_csv: One row per chunk (grade, task, subject_id, chunk_path, ...).
+        splits_csv: Frozen split file; the split column of chunk_metadata_csv itself is ignored.
+        split: "train", "val" or "test".
+        task: Keep only this task ("videos", "rest10"); None keeps all.
+
+    Returns:
+        grade -> rows, in file order.
+    """
     key_cols, assignment = load_split_assignment(splits_csv)
     rows_by_grade: dict[str, list[dict]] = {}
     with open(chunk_metadata_csv) as f:
@@ -99,10 +116,18 @@ def normalize_volume(data: np.ndarray, median: float, scale: float) -> np.ndarra
 
 
 def denormalize_chunk(chunk: Tensor, median: Tensor, scale: Tensor, mask: Tensor) -> Tensor:
-    """Back to BOLD units per sample. chunk, mask: (B, T, H, W, D); median, scale: (B,).
+    """Undo normalize_volume per sample, inside the brain only.
 
-    mask must be the ground-truth brain (x_a != 0), not derived from a model output whose background
-    is not guaranteed to be 0; voxels outside it stay 0 instead of becoming `median`."""
+    Args:
+        chunk: (B, T, H, W, D) normalised chunk (input or model output).
+        median: (B,) run medians.
+        scale: (B,) run scales.
+        mask: (B, T, H, W, D) bool brain mask. Must come from the input (x_a != 0), not the model output,
+            whose background is not guaranteed to be 0.
+
+    Returns:
+        (B, T, H, W, D) in BOLD units; voxels outside `mask` are 0, not `median`.
+    """
     shape = (chunk.shape[0], 1, 1, 1, 1)
     median = median.to(chunk.dtype).view(shape).expand_as(chunk)
     scale = scale.to(chunk.dtype).view(shape).expand_as(chunk)
@@ -117,7 +142,24 @@ class FMRIUnpairedGradeDataset(Dataset):
     Epoch length is min(A, B): the smaller domain is used in full (DataLoader shuffles it) and the
     larger one gets a fresh permutation per epoch via set_epoch(), which must be called before the
     epoch's iterator is created. full_coverage (val/test) cycles index % size through both domains.
-    Items: {"A", "B"}: (T, padded_h, W, D), {"A_paths", "B_paths"}, {"A_meta", "B_meta"}.
+
+    Args:
+        split: "train", "val" or "test".
+        chunk_metadata_csv: One row per chunk.
+        run_stats_csv: Per-run (median, scale) for normalisation.
+        splits_csv: Frozen split file.
+        clean_grade: Grade used as domain B, e.g. "Grade 1".
+        grades_b: Grades pooled into domain A (corrupted), despite the name.
+        padded_h: Axis-0 size after zero-padding.
+        task: Keep only this task; None keeps all.
+        flip_prob: Probability of a left-right flip per chunk (train augmentation).
+        base_seed: Seed of the per-epoch permutation, offset by the epoch.
+        full_coverage: Iterate max(A, B) items so every chunk of both domains is seen (val/test).
+
+    Raises:
+        ValueError: If a domain is empty or a run has no normalisation stats.
+
+    Items are dicts: "A", "B": (T, padded_h, W, D); "A_paths", "B_paths"; "A_meta", "B_meta" (see _meta).
     """
 
     def __init__(self, split: str, chunk_metadata_csv: str, run_stats_csv: str, splits_csv: str,
@@ -149,12 +191,14 @@ class FMRIUnpairedGradeDataset(Dataset):
         return self._epoch_len
 
     def set_epoch(self, epoch: int) -> None:
+        """Draw the larger domain's subset for this epoch; seeded, so identical on every DDP rank."""
         if self.full_coverage:
             return
         g = torch.Generator().manual_seed(self.base_seed + epoch)
         self._larger_epoch_indices = torch.randperm(self._larger_size, generator=g)[: self._epoch_len].tolist()
 
     def _load(self, row: dict) -> tuple[Tensor, float, float]:
+        """Chunk -> ((T, padded_h, W, D) normalised tensor, run median, run scale)."""
         median, scale = self.run_stats[run_key(row)]
         data = np.asarray(nib.load(row["chunk_path"]).dataobj, dtype=np.float32)  # (H, W, D, T)
         x = torch.from_numpy(normalize_volume(data, median, scale)).permute(3, 0, 1, 2)
@@ -165,6 +209,7 @@ class FMRIUnpairedGradeDataset(Dataset):
 
     @staticmethod
     def _meta(row: dict, median: float, scale: float) -> dict:
+        """Per-chunk metadata kept with the batch; median/scale are needed to denormalise for metrics."""
         return dict(
             subject_id=row["subject_id"], age_group=row["age_group"], session_id=row["session_id"],
             run_id=row["run_id"], task=row["task"], grade=row["grade"],

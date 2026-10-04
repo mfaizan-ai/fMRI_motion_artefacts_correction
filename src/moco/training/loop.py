@@ -1,12 +1,15 @@
 """One training epoch and one validation pass."""
 import contextlib
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 import numpy as np
 import torch
+from omegaconf import DictConfig
 from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from moco.atlas import SchaeferAtlas, age_group_for_subject, roi_timeseries_batch
@@ -37,14 +40,16 @@ class TrainContext:
 
 
 def _unwrap(model: torch.nn.Module) -> torch.nn.Module:
+    """The model itself, without the DDP wrapper."""
     return model.module if isinstance(model, DDP) else model
 
 
 def _first_scale_mean(scores: list[Tensor]) -> float:
+    """Mean discriminator score at full resolution, for logging."""
     return scores[0].mean().item()
 
 
-def _set_requires_grad(params, flag: bool) -> None:
+def _set_requires_grad(params: Iterable[Tensor], flag: bool) -> None:
     for p in params:
         p.requires_grad_(flag)
 
@@ -63,8 +68,19 @@ def _path_keys(batch: dict) -> tuple[str, str]:
 
 
 def _sequence_losses(x_a: Tensor, x_hat_b: Tensor, weights: LossWeights, atlas: SchaeferAtlas | None,
-                     fc_cfg) -> tuple[Tensor, dict]:
-    """Weighted temporal-consistency and FC losses on a stitched (S, T, ...) sequence."""
+                     fc_cfg: DictConfig) -> tuple[Tensor, dict]:
+    """Weighted temporal-consistency and FC losses on one sequence.
+
+    Args:
+        x_a: (S, T, X, Y, Z) S consecutive input chunks.
+        x_hat_b: (S, T, X, Y, Z) their corrections.
+        weights: Loss weights; a term with weight 0 is not computed.
+        atlas: Age-matched atlas for FC; None skips the FC term.
+        fc_cfg: `train.sequence.fc` config (mask strategy and its parameters).
+
+    Returns:
+        (weighted sum, dict of unweighted terms plus "fc_stats").
+    """
     total, terms = 0.0, {}
     if weights.temporal > 0:
         terms["temporal"] = temporal_consistency_loss(x_a, x_hat_b)
@@ -83,9 +99,23 @@ def _sequence_losses(x_a: Tensor, x_hat_b: Tensor, weights: LossWeights, atlas: 
     return total, terms
 
 
-def train_one_epoch(ctx: TrainContext, loader, weights: LossWeights, epoch: int, cfg, sequence_mode: bool,
-                    show_progress: bool = True) -> dict[str, float]:
-    """cfg: the `train` config group. Returns epoch means (D terms averaged over D updates only)."""
+def train_one_epoch(ctx: TrainContext, loader: DataLoader, weights: LossWeights, epoch: int, cfg: DictConfig,
+                    sequence_mode: bool, show_progress: bool = True) -> dict[str, float]:
+    """One pass over the training loader: a generator step per batch, a discriminator step every
+    `d_update_every` batches.
+
+    Args:
+        ctx: Model, optimisers, replay buffers and optional ROI discriminator / atlases.
+        loader: Training loader (grade or PSC dataset).
+        weights: Loss weights for this epoch (after warmup).
+        epoch: Epoch number, used to reshuffle the dataset.
+        cfg: The `train` config group.
+        sequence_mode: Batches are (1, S, T, ...) sequences instead of (B, T, ...) chunks.
+        show_progress: Show the tqdm bar (main rank only).
+
+    Returns:
+        Epoch means of every logged term; D terms are averaged over D updates only.
+    """
     model, raw = ctx.model, _unwrap(ctx.model)
     model.train()
     roi_cfg = cfg.roi
@@ -196,6 +226,7 @@ def train_one_epoch(ctx: TrainContext, loader, weights: LossWeights, epoch: int,
         pbar.set_postfix(G=f"{total_loss.item():.3f}", cyc=f"{g['cyc'].item():.3f}", idt=f"{g['idt'].item():.3f}",
                          D_A=f"{last_d_a:.3f}", D_B=f"{last_d_b:.3f}", gradG=f"{grad_norm:.2f}")
 
+    # each term is averaged over the steps that actually produced it, not over all batches
     per_d_update = {"D_A", "D_B", "D_total"}
     divisor = {**dict.fromkeys(per_d_update, n["d"]), "D_r1": n["r1"], "D_roi_total": n["roi"],
                "G_fc_n_retained": n["fc"], "G_fc_retained_frac": n["fc"]}
@@ -203,11 +234,27 @@ def train_one_epoch(ctx: TrainContext, loader, weights: LossWeights, epoch: int,
 
 
 @torch.no_grad()
-def validate(model: torch.nn.Module, loader, weights: LossWeights, device: torch.device, epoch: int, cfg,
-             sequence_mode: bool, clean_grade: str | None = None, atlases: dict[str, SchaeferAtlas] | None = None,
-             show_progress: bool = True) -> dict[str, float]:
-    """cyc/idt losses and input-vs-corrected fMRI metrics in BOLD units. On the grade dataset also residual
-    |G_B(x) - x| per grade (incl. Grade 1, never translated in training) and D_B score distributions."""
+def validate(model: torch.nn.Module, loader: DataLoader, weights: LossWeights, device: torch.device, epoch: int,
+             cfg: DictConfig, sequence_mode: bool, clean_grade: str | None = None,
+             atlases: dict[str, SchaeferAtlas] | None = None, show_progress: bool = True) -> dict[str, float]:
+    """Validation losses and input-vs-corrected fMRI metrics in BOLD units.
+
+    Args:
+        model: Unwrapped model.
+        loader: Validation loader.
+        weights: Loss weights (only needed to evaluate the sequence terms).
+        device: Device of the model.
+        epoch: Epoch number, for the progress bar.
+        cfg: The `train` config group.
+        sequence_mode: Batches are sequences.
+        clean_grade: Name of the clean grade; adds val_grade1_identity_l1 if present.
+        atlases: Age group -> atlas, for the FC term.
+        show_progress: Show the tqdm bar.
+
+    Returns:
+        "val_*" means over batches. On the grade dataset also the residual |G(x) - x| per grade
+        (including Grade 1, never translated in training) and mean D_B scores.
+    """
     model.eval()
     sums: dict[str, float] = defaultdict(float)
     n_batches = n_fc = 0
