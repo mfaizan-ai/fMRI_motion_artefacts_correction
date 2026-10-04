@@ -9,8 +9,8 @@
 #SBATCH --time=06:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
-set -euo pipefail
-source ~/.bashrc
+source ~/.bashrc  # before strict mode: /etc/bashrc reads unset variables
 conda activate moco
+set -euo pipefail
 cd "$SLURM_SUBMIT_DIR"
 python scripts/evaluate.py "$@"
