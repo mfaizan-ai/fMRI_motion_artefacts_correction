@@ -1,8 +1,4 @@
-"""Unpaired motion-grade dataset: domain A = pooled Grades 2-6 (corrupted), domain B = Grade 1 (clean).
-
-Chunks are (T=5, 60, 72, 56) on disk, robust-normalised per run with (x - median) / scale inside the
-brain, and zero-padded on axis 0 to 64 so three stride-2 downsamplings divide evenly.
-"""
+"""Unpaired motion-grade dataset: domain A = pooled Grades 2-6 (corrupted), domain B = Grade 1 (clean)."""
 import csv
 import random
 
@@ -21,7 +17,14 @@ def run_key(row: dict) -> RunKey:
 
 
 def load_run_stats(run_stats_csv: str) -> dict[RunKey, tuple[float, float]]:
-    """(subject_id, session_id, run_id, task) -> (median, scale)."""
+    """Per-run robust normalisation stats.
+
+    Args:
+        run_stats_csv: CSV with subject_id, session_id, run_id, task, median, scale.
+
+    Returns:
+        (subject_id, session_id, run_id, task) -> (median, scale).
+    """
     with open(run_stats_csv) as f:
         return {run_key(row): (float(row["median"]), float(row["scale"])) for row in csv.DictReader(f)}
 
@@ -51,19 +54,44 @@ def load_chunk_rows(chunk_metadata_csv: str, splits_csv: str, split: str,
 
 
 def pad_axis0(x: Tensor, target: int) -> Tensor:
-    """(..., T, H, W, D) zero-padded symmetrically on H (dim -3) to target."""
+    """Zero-pad axis H symmetrically so three stride-2 downsamplings divide evenly (60 -> 64).
+
+    Args:
+        x: (..., T, H, W, D).
+        target: Padded size of H.
+
+    Returns:
+        (..., T, target, W, D).
+    """
     total = target - x.shape[-3]
     return F.pad(x, (0, 0, 0, 0, total // 2, total - total // 2))
 
 
 def crop_axis0(x: Tensor, size: int) -> Tensor:
-    """Inverse of pad_axis0 on dim -3."""
+    """Inverse of pad_axis0: centre-crop H back to `size`.
+
+    Args:
+        x: (..., T, H, W, D) with H >= size.
+        size: Original size of H.
+
+    Returns:
+        (..., T, size, W, D).
+    """
     lo = (x.shape[-3] - size) // 2
     return x[..., lo:lo + size, :, :]
 
 
 def normalize_volume(data: np.ndarray, median: float, scale: float) -> np.ndarray:
-    """data: (X, Y, Z, T) raw BOLD. Brain = nonzero at t=0; background stays exactly 0."""
+    """Robust per-run normalisation (x - median) / scale, inside the brain only.
+
+    Args:
+        data: (X, Y, Z, T) raw BOLD; brain = voxels nonzero at t=0.
+        median: Run median.
+        scale: Run scale.
+
+    Returns:
+        (X, Y, Z, T) float32, background exactly 0.
+    """
     mask = data[..., 0] != 0
     out = np.zeros_like(data, dtype=np.float32)
     out[mask] = (data[mask] - median) / scale

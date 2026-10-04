@@ -10,6 +10,19 @@ from moco.models.spatiotemporal import SpatioTemporalCycleGAN
 
 
 def build_model(model_cfg: DictConfig, in_timepoints: int, spatial_dims: tuple) -> CycleGANBase:
+    """Instantiate an untrained CycleGAN.
+
+    Args:
+        model_cfg: `model` config group; `name` selects "spatiotemporal" or "disentangled".
+        in_timepoints: Volumes per chunk (used by the disentangled model only).
+        spatial_dims: Padded (H, W, D) input size (used by the spatiotemporal model only).
+
+    Returns:
+        The model on CPU, in train mode.
+
+    Raises:
+        ValueError: If `model_cfg.name` is unknown.
+    """
     common = dict(
         content_base_ch=model_cfg.content_base_ch,
         content_n_res=model_cfg.content_n_res,
@@ -43,7 +56,7 @@ def _config_from_legacy_args(args: dict) -> DictConfig:
             "disc_base_ch": args["disc_base_ch"],
             "num_disc_scales": args["num_disc_scales"],
             "residual": args["residual"],
-            "temporal_k": 3,
+            "temporal_k": 3,  # fixed in the original repo, never an argparse option
             "use_convlstm": args.get("convlstm", False),
             "disc_temporal_diffs": not args.get("no_disc_temporal_diffs", False),
         },
@@ -55,11 +68,20 @@ def _config_from_legacy_args(args: dict) -> DictConfig:
 
 
 def config_from_checkpoint(ckpt: dict) -> DictConfig:
+    """Config a checkpoint was trained with: stored `config` (this repo) or mapped legacy `args`."""
     return OmegaConf.create(ckpt["config"]) if "config" in ckpt else _config_from_legacy_args(ckpt["args"])
 
 
 def load_model(checkpoint_path: str | Path, device: str | torch.device) -> tuple[CycleGANBase, dict]:
-    """Model in eval mode with checkpoint weights, plus the raw checkpoint dict."""
+    """Rebuild a model from its checkpoint and load the weights.
+
+    Args:
+        checkpoint_path: `.pt` file from this repo or the original one.
+        device: Device to load the weights and model onto.
+
+    Returns:
+        (model in eval mode, raw checkpoint dict with e.g. "epoch" and "config"/"args").
+    """
     ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
     cfg = config_from_checkpoint(ckpt)
     model = build_model(cfg.model, cfg.data.in_timepoints, cfg.data.spatial_dims).to(device)

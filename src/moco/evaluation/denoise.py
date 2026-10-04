@@ -7,6 +7,7 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 import torch
+from omegaconf import DictConfig
 
 from moco.data.grade import crop_axis0, load_run_stats, normalize_volume, pad_axis0
 from moco.models.build import config_from_checkpoint, load_model
@@ -18,24 +19,36 @@ log = logging.getLogger(__name__)
 @torch.no_grad()
 def correct_run(volume: np.ndarray, median: float, scale: float, model: torch.nn.Module, device: str,
                 chunk_t: int, padded_h: int) -> np.ndarray:
-    """volume: (X, Y, Z, T) raw BOLD -> corrected (X, Y, Z, T) BOLD.
+    """Correct one full run with the A->B generator, chunk by chunk.
 
-    Non-overlapping chunk_t-volume chunks; a short final chunk is filled by repeating its last volume
-    and the filler is dropped after correction. Background stays exactly 0."""
+    Args:
+        volume: (X, Y, Z, T) raw BOLD, brain-masked (background exactly 0).
+        median: Run median used for the robust normalisation.
+        scale: Run scale used for the robust normalisation.
+        model: Trained CycleGAN in eval mode; must expose `correct(x)` with x: (1, chunk_t, H, Y, Z).
+        device: Device the model lives on.
+        chunk_t: Volumes per chunk, as trained (read from the checkpoint).
+        padded_h: Size axis 0 is zero-padded to before the model, then cropped back.
+
+    Returns:
+        (X, Y, Z, T) corrected BOLD, same shape as `volume`; background stays exactly 0.
+    """
     X, T = volume.shape[0], volume.shape[-1]
-    mask = volume[..., 0] != 0
+    mask = volume[..., 0] != 0  # brain = nonzero at t=0, same rule as training
     vol = torch.from_numpy(normalize_volume(volume, median, scale)).permute(3, 0, 1, 2)  # (T, X, Y, Z)
 
     corrected = []
-    for start in range(0, T, chunk_t):
+    for start in range(0, T, chunk_t):  # non-overlapping chunks: 0..4, 5..9, ...
         chunk = vol[start:start + chunk_t]
         n_real = chunk.shape[0]
         if n_real < chunk_t:
+            # model needs exactly chunk_t volumes: repeat the last one, drop the filler after correction
             chunk = torch.cat([chunk, chunk[-1:].repeat(chunk_t - n_real, 1, 1, 1)])
         out = model.correct(pad_axis0(chunk.unsqueeze(0).to(device), padded_h))
         corrected.append(crop_axis0(out, X)[0, :n_real].cpu().numpy())
 
     corrected_norm = np.concatenate(corrected)  # (T, X, Y, Z)
+    # denormalise inside the input brain only; the model's background is not guaranteed to be 0
     bold = np.zeros_like(corrected_norm)
     mask_t = np.broadcast_to(mask, corrected_norm.shape)
     bold[mask_t] = corrected_norm[mask_t] * scale + median
@@ -43,8 +56,20 @@ def correct_run(volume: np.ndarray, median: float, scale: float, model: torch.nn
 
 
 def select_runs(chunk_metadata_csv: str, which: str) -> pd.DataFrame:
-    """Video runs to denoise: "first_2mo" = first session/run of each 2-month subject, "all_video" = every run."""
-    meta = pd.read_csv(chunk_metadata_csv, dtype={"session_id": str, "run_id": str})
+    """Pick the video runs to denoise from the chunk metadata.
+
+    Args:
+        chunk_metadata_csv: Chunk metadata CSV; one row per chunk, so runs are deduplicated here.
+        which: "first_2mo" = first session/run of each 2-month subject (9-month visits end in "A"),
+            "all_video" = every video run at both ages.
+
+    Returns:
+        One row per run with subject_id, session_id, run_id, source_volume_path, sorted by subject.
+
+    Raises:
+        ValueError: If `which` is not one of the two options.
+    """
+    meta = pd.read_csv(chunk_metadata_csv, dtype={"session_id": str, "run_id": str})  # keep "002", not 2
     video = meta[meta["task"] == "videos"]
     cols = ["subject_id", "session_id", "run_id", "source_volume_path"]
     if which == "all_video":
@@ -57,7 +82,15 @@ def select_runs(chunk_metadata_csv: str, which: str) -> pd.DataFrame:
 
 
 def check_output_root(output_root: Path, overwrite: bool) -> None:
-    """Exit if output_root already holds files, unless overwrite is set."""
+    """Stop before anything is written if the output folder already holds files.
+
+    Args:
+        output_root: Folder the denoised runs will be written to.
+        overwrite: If True, allow writing into a non-empty folder.
+
+    Raises:
+        SystemExit: If `output_root` is non-empty and `overwrite` is False.
+    """
     # Hydra creates the (empty) run dir before main(), so test for contents, not existence
     if overwrite or not output_root.exists() or not any(output_root.iterdir()):
         return
@@ -65,8 +98,15 @@ def check_output_root(output_root: Path, overwrite: bool) -> None:
                      f"or pass overwrite=true to overwrite its runs.")
 
 
-def run_denoise(cfg) -> None:
+def run_denoise(cfg: DictConfig) -> None:
+    """Denoise every selected run and save it under output_root, mirroring the source directory tree.
+
+    Args:
+        cfg: Composed `configs/denoise.yaml`; uses checkpoint, device, runs, source_root, output_root and
+            data.run_stats_csv / data.chunk_metadata_csv.
+    """
     model, ckpt = load_model(cfg.checkpoint, cfg.device)
+    # chunk length and padded size come from the checkpoint, so old-repo checkpoints work unchanged
     ckpt_cfg = config_from_checkpoint(ckpt)
     chunk_t, padded_h = ckpt_cfg.data.in_timepoints, ckpt_cfg.data.spatial_dims[0]
     run_stats = load_run_stats(cfg.data.run_stats_csv)
@@ -94,11 +134,12 @@ def run_denoise(cfg) -> None:
         img = nib.load(row.source_volume_path)
         corrected = correct_run(np.asarray(img.dataobj, dtype=np.float32), *run_stats[key], model, cfg.device,
                                 chunk_t, padded_h)
+        # same relative path as the source, with a _corrected suffix
         source = Path(row.source_volume_path)
         out_path = output_root / source.parent.relative_to(source_root) / source.name.replace(".nii.gz",
                                                                                               "_corrected.nii.gz")
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        nib.save(nib.Nifti1Image(corrected, img.affine, img.header), out_path)
+        nib.save(nib.Nifti1Image(corrected, img.affine, img.header), out_path)  # keep source affine/header
         append_log({**record, "output_path": str(out_path), "status": "ok"})
         log.info("[%d/%d] %s -> %s", i, len(runs), row.subject_id, out_path)
     log.info("done, log -> %s", log_path)
