@@ -1,0 +1,2 @@
+epoch,lr_G,lr_D,G_adv,G_cyc,G_idt,G_total,D_A,D_B,D_total,D_r1,grad_norm_G,score_real_a,score_fake_a,score_real_b,score_fake_b,G_roi_adv,D_roi_total,G_roi_cycle
+1,4.16e-05,1.04e-05,1.230006,0.285110,0.216132,3.044104,0.648124,0.934420,1.582545,518.876648,57.590370,-0.181280,-0.207878,-0.426225,-0.413451,0.875128,0.540419,0.266203

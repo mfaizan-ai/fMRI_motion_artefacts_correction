@@ -1,0 +1,37 @@
+=== old
+
+Run directory : /lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion_aretefacts_correction_cycle_gans_updated/runs/_equivalence/old2
+Device        : cuda
+GPU           : NVIDIA H200
+VRAM          : 150.1 GB
+
+Building dataloaders ...
+  Grade dataset enabled: Grade1 vs pooled ('Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6')
+  Chunk metadata : /lustre/disk/home/users/mfaizan/motion_correction/cycleGANS_on_2d_images/pytorch-CycleGAN-and-pix2pix/data_preprocessing/motion_grades_chunk_5_dataset_hfiltered/chunk_metadata.csv
+  Run stats      : /lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion-artefacts-correction/all_dataset/run_normalization_stats_hfiltered.csv
+  train: A=13033 B=9350 epoch_len=9350
+  val  : A=3012 B=1724 epoch_len=3012 (full_coverage)
+Building model ...
+  spatial_dims: (64, 72, 56) (grade dataset)
+
+Parameter counts:
+  E_c (STContentEncoder)                     45,711,744
+  E_a (STArtefactEncoder)                     2,676,256
+  G_B (STMotionFreeDecoder)                  36,243,889
+  G_A (STMotionCorruptedDecoder)             36,797,617
+  D_B (STMultiScaleDisc)                     23,634,562
+  D_A (STMultiScaleDisc)                     23,634,562
+  Total                                     168,698,630
+
+Loading Schaefer-400 atlases ...
+ROI discriminator: n_rois=400  lambda_roi=0.5  w_roi_adv=1.0
+
+Starting training: epochs 1 → 1
+
+Epoch 001/1  (10s)  G=3.0441  cyc=0.2851  idt=0.2161  D_A=0.6481  D_B=0.9344  r1=518.8766  ∇G=57.590  lr_G=4.16e-05
+  [VAL]  cyc=0.2471  idt=0.2045  tSNR↑=-148.1129  DVARS↓=-39.7887  GS_std↓=-3.1078  smooth=1.104  score=-25.1105
+  [VAL]  ✓ New best score=-25.1105  saved → /lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion_aretefacts_correction_cycle_gans_updated/runs/_equivalence/old2/best_model.pt
+
+Training complete.  Best val score: -25.1105
+Checkpoints saved to: /lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion_aretefacts_correction_cycle_gans_updated/runs/_equivalence/old2
+=== new
