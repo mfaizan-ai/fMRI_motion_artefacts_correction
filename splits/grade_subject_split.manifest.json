@@ -1,0 +1,86 @@
+{
+  "source": "/lustre/disk/home/users/mfaizan/motion_correction/cycleGANS_on_2d_images/pytorch-CycleGAN-and-pix2pix/data_preprocessing/motion_grades_chunk_5_dataset_hfiltered/chunk_metadata.csv",
+  "source_sha256": "58c716c913abb92243f921e796795e2aeec3a61070b32224b0aced82e24b315d",
+  "unit": "subject_id",
+  "config": {
+    "paths": {
+      "repo_root": "/lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion_aretefacts_correction_cycle_gans_updated",
+      "runs_root": "/lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion_aretefacts_correction_cycle_gans_updated/runs",
+      "grade_chunk_metadata_csv": "/lustre/disk/home/users/mfaizan/motion_correction/cycleGANS_on_2d_images/pytorch-CycleGAN-and-pix2pix/data_preprocessing/motion_grades_chunk_5_dataset_hfiltered/chunk_metadata.csv",
+      "grade_run_stats_csv": "/lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion-artefacts-correction/all_dataset/run_normalization_stats_hfiltered.csv",
+      "psc_dataset_root": "/lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset/cyclegans_chunk5_dataset",
+      "video_manifest_csv": "/lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset/cyclegans_chunk5_dataset/chunk5_subject_wise_order_video_data/video_sequence_manifest.csv",
+      "video_chunk_metadata_csv": "/lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset/cyclegans_chunk5_dataset/chunk5_subject_wise_order_video_data/video_chunk_metadata_with_paths.csv",
+      "atlas_2mo": "/lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/templates/rois/Schaefer2018_400Parcels_7Networks_order_space-nihpd-02-05_2mm.nii.gz",
+      "atlas_9mo": "/lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/templates/rois/Schaefer2018_400Parcels_7Networks_order_space-nihpd-08-11_2mm.nii.gz",
+      "denoise_source_root": "/lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset/brain_masked_cropped_hfiltered_normalized_to_common_space",
+      "denoise_output_root": "/lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset"
+    },
+    "chunk_metadata_csv": "/lustre/disk/home/users/mfaizan/motion_correction/cycleGANS_on_2d_images/pytorch-CycleGAN-and-pix2pix/data_preprocessing/motion_grades_chunk_5_dataset_hfiltered/chunk_metadata.csv",
+    "name": "grade_subject_split",
+    "output_csv": "/lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion_aretefacts_correction_cycle_gans_updated/splits/grade_subject_split.csv",
+    "overwrite": false,
+    "seed": 0,
+    "ratios": {
+      "train": 0.7,
+      "val": 0.15,
+      "test": 0.15
+    },
+    "stratify": {
+      "high_motion_grades": [
+        "Grade 4",
+        "Grade 5",
+        "Grade 6"
+      ],
+      "n_motion_bins": 3
+    }
+  },
+  "subjects": {
+    "train": 126,
+    "test": 27,
+    "val": 27
+  },
+  "subjects_by_age": {
+    "test": {
+      "2mo": 19,
+      "9mo": 8
+    },
+    "train": {
+      "2mo": 90,
+      "9mo": 36
+    },
+    "val": {
+      "2mo": 19,
+      "9mo": 8
+    }
+  },
+  "chunks_by_grade": {
+    "test": {
+      "Grade 1": 2372,
+      "Grade 2": 1531,
+      "Grade 3": 384,
+      "Grade 4": 359,
+      "Grade 5": 246,
+      "Grade 6": 125
+    },
+    "train": {
+      "Grade 1": 9071,
+      "Grade 2": 7540,
+      "Grade 3": 2213,
+      "Grade 4": 2105,
+      "Grade 5": 1135,
+      "Grade 6": 502
+    },
+    "val": {
+      "Grade 1": 2062,
+      "Grade 2": 1761,
+      "Grade 3": 360,
+      "Grade 4": 309,
+      "Grade 5": 219,
+      "Grade 6": 202
+    }
+  },
+  "created_utc": "2026-10-03T13:12:53+00:00",
+  "git_commit": "be3743163fd911691685bc150bfe42ccbaf4bbd0",
+  "git_dirty": true
+}

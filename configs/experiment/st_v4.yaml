@@ -1,6 +1,8 @@
 # @package _global_
 # st_v4_ddp_disc_temporal_roi: spatiotemporal model, temporal conv in the last D block, ROI discriminator
 run_name: st_v4
+data:
+  splits_csv: ${paths.repo_root}/splits/grade_split_legacy.csv   # the split the original run used
 model:
   residual: true
 train:
