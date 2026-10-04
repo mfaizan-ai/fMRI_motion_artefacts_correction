@@ -1,0 +1,67 @@
+# Box plots of the test metrics by grade, from the output of scripts/evaluate.py
+defaults:
+  - _self_
+  - override hydra/job_logging: none
+  - override hydra/hydra_logging: none
+
+input_dir: ???             # evaluate.py output_dir, holding test_metrics_per_chunk.csv
+metrics_csv: ${input_dir}/test_metrics_per_chunk.csv
+output_dir: ${input_dir}/plots
+output_name: test_metrics_by_grade.png
+dpi: 300
+seed: 0                    # bootstrap RNG
+n_boot: 2000               # bootstrap resamples for the median CI
+ci: 0.95
+title: Test-set fMRI quality by motion grade
+
+metrics:                   # CSV column prefix -> panel labels; improvement sign follows evaluation/metrics.py
+  tsnr:
+    name: tSNR
+    improvement: tSNR improvement
+    improvement_axis: corrected − raw
+  dvars:
+    name: DVARS
+    improvement: DVARS improvement
+    improvement_axis: raw − corrected
+  gs_std:
+    name: Global signal std
+    improvement: Global signal std improvement
+    improvement_axis: raw − corrected
+
+legend:
+  input: Raw
+  corrected: Corrected
+
+colors:                    # dataviz reference palette (validated): categorical slots 2 and 1, ordinal blue ramp
+  raw: "#eb6834"
+  corrected: "#2a78d6"
+  grades: ["#86b6ef", "#5598e7", "#2a78d6", "#1c5cab", "#184f95", "#104281"]
+  text_primary: "#0b0b0b"
+  text_secondary: "#52514e"
+  axis: "#8a8984"
+  grid: "#e6e5e1"
+
+style:
+  figsize: [16, 9]
+  box_width: 0.34
+  pair_offset: 0.2         # raw / corrected boxes sit this far either side of the grade tick
+  box_alpha: 0.35          # raw / corrected boxes, so the median lines stay visible
+  gain_box_alpha: 0.85     # improvement boxes, coloured by grade
+  line_width: 1.0
+  median_width: 2.0
+  trend_width: 2.0
+  marker_size: 5
+  cap_size: 3
+  flier_size: 2
+  flier_alpha: 0.35
+  tick_size: 9
+  label_size: 10
+  title_size: 12
+  suptitle_size: 14
+
+hydra:
+  run:
+    dir: ${output_dir}
+  output_subdir: null
+  job:
+    chdir: false

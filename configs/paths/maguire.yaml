@@ -15,3 +15,8 @@ atlas_9mo: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/template
 # whole-run denoising: source runs on the cropped common-space grid, and where corrected runs go
 denoise_source_root: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset/brain_masked_cropped_hfiltered_normalized_to_common_space
 denoise_output_root: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset/motion_denoised_data
+# runs denoised by the original repo (e.g. motion_corrected_st_v4), same tree and _corrected suffix
+legacy_denoised_root: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/faizan_motion_correction_dataset
+
+# adult MNI Schaefer-400 centroids: node positions for glass-brain plots and the Yeo-7 network of each ROI
+schaefer_mni_centroids_csv: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/templates/rois/Schaefer2018_400Parcels_7Networks_order_FSLMNI152_1mm.Centroid_RAS.csv

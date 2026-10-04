@@ -1,0 +1,72 @@
+# Original-repo-style figures comparing pipeline QC (scripts/pipeline_qc.py outputs) across sources
+defaults:
+  - paths: maguire
+  - _self_
+  - override hydra/job_logging: none
+  - override hydra/hydra_logging: none
+
+qc_root: ${paths.repo_root}/motion_denoising_qc
+sources: [original_data, motion_corrected_st_v4, motion_corrected_stv6_convlstm_first_run_video_data]  # plot order
+labels: [Raw, stv4, stv6]  # one plot label per source
+colors: ["#CC6677", "#DDAA33", "#4477AA"]  # one colour per source (Paul Tol, colour-blind safe)
+comparison_name: raw_vs_stv4_vs_stv6
+output_dir: ${qc_root}/figures/${comparison_name}
+centroids_csv: ${paths.schaefer_mni_centroids_csv}
+dpi: 200
+seed: 0                    # bootstrap RNG for the modularity median CI
+n_boot: 2000
+ci: 0.95
+
+fc_top_percent: 2          # FC glass brain: draw only the strongest 2% of significant edges by |mean z|
+
+distribution:              # Ciric-style QC-FC density, one panel per source
+  panel_width: 5
+  panel_height: 3.6
+  kde_points: 500
+  fill_alpha: 0.6
+  title_size: 14
+  text_size: 11
+
+matrix:
+  panel_size: 5.5
+  colorbar_shrink: 0.8
+
+distance:                  # density contours stand in for the original seaborn KDE
+  panel_width: 5.5
+  panel_height: 4.5
+  bins: 150
+  smooth_sigma: 3          # Gaussian smoothing of the 2-D histogram, in bins
+  levels: 10
+  density_floor: 0.03      # lowest contour, as a fraction of peak density (seaborn thresh)
+
+modularity:
+  box_width_inches: 2.2
+  height: 5
+  edge: "#333333"
+  box_alpha: 0.6
+  trend: "#222222"         # median-with-CI line across sources
+  legend_headroom: 0.12    # extra y-range above the whiskers, as a share of the axis span
+
+connectome:
+  node_color: "#333333"
+  node_size: 14
+  qcfc_edge_width: 2.2
+  qcfc:                    # every significant QC-FC edge: one ortho row per source
+    display_mode: ortho
+    side_by_side: false
+    panel_size: [16, 5.6]
+    title_space: 0.1       # share of each panel's height kept for its title
+    title_size: 13
+  fc:                      # top FC edges: one axial view per source, side by side
+    display_mode: z
+    side_by_side: true
+    panel_size: [6, 7]
+    title_space: 0.12
+    title_size: 12
+
+hydra:
+  run:
+    dir: ${output_dir}
+  output_subdir: null
+  job:
+    chdir: false

@@ -1,0 +1,128 @@
+===== raw_data_each_sub_first_run vs original_data
+same subjects in same order: True
+mean_fd  max |old - new| = 0.000e+00
+Q        max |old - new| = 1.082e-02
+dvars    max |old - new| = 3.553e-15
+tsnr     max |old - new| = 3.553e-15
+qc_fc_r          max |old - new| = 1.110e-16
+qc_fc_p          max |old - new| = 2.220e-16
+distance_matrix  max |old - new| = 0.000e+00
+fc_mean_z        max |old - new| = 0.000e+00
+fc_p             max |old - new| = 0.000e+00
+qc_fc_fdr_significant  old 18822 new 18822 edges, 0 differ
+fc_significant         old 79633 new 79633 edges, 0 differ
+
+old summary.txt:
+n_subjects: 128
+fdr_significant_edges: 18822 / 79800
+median_abs_qcfc: 0.1257
+qcfc_dd_r: -0.2829
+qcfc_dd_p: 0.0000e+00
+modularity_Q_mean: 0.1355
+modularity_Q_sd: 0.0512
+Q_vs_FD_r: -0.2001
+Q_vs_FD_p: 2.3522e-02
+dvars_mean: 25.8181
+dvars_sd: 10.7225
+tsnr_mean: 53.3597
+tsnr_sd: 21.9864
+gs_std_mean: 2.3999
+gs_std_sd: 1.3251
+
+old fc_significance_summary.txt:
+n_subjects: 128
+n_edges: 79800
+n_fc_significant: 79633
+pct_fc_significant: 99.7907
+mean_z_min: -0.0765
+mean_z_max: 1.5447
+median_abs_fc_r: 0.2807
+
+new summary.json:
+{
+  "source": "raw",
+  "n_subjects": 128,
+  "n_edges": 79800,
+  "qcfc_n_significant": 18822,
+  "qcfc_pct_significant": 23.586466165413533,
+  "qcfc_median_abs_r": 0.12565806269859514,
+  "qcfc_dd_r": -0.282906179487862,
+  "qcfc_dd_p": 0.0,
+  "fc_n_significant": 79633,
+  "fc_pct_significant": 99.79072681704261,
+  "fc_median_abs_r": 0.28069546818733215,
+  "Q_mean": 0.13538689754204825,
+  "Q_sd": 0.051274777691875044,
+  "Q_vs_fd_r": -0.2015651480026138,
+  "Q_vs_fd_p": 0.022515996051553026,
+  "dvars_mean": 25.818127050995827,
+  "dvars_sd": 10.722531733952058,
+  "tsnr_mean": 53.35972344875336,
+  "tsnr_sd": 21.986446651872658,
+  "mean_fd_mean": 1.2438353173895975
+}
+
+===== st_v4_corrected_each_sub_first_run vs motion_corrected_st_v4
+same subjects in same order: True
+mean_fd  max |old - new| = 0.000e+00
+Q        max |old - new| = 1.876e-02
+dvars    max |old - new| = 3.553e-15
+tsnr     max |old - new| = 0.000e+00
+qc_fc_r          max |old - new| = 1.397e-08
+qc_fc_p          max |old - new| = 3.360e-08
+distance_matrix  max |old - new| = 0.000e+00
+fc_mean_z        max |old - new| = 1.490e-08
+fc_p             max |old - new| = 5.960e-08
+qc_fc_fdr_significant  old 47 new 47 edges, 0 differ
+fc_significant         old 70592 new 70592 edges, 0 differ
+
+old summary.txt:
+n_subjects: 128
+fdr_significant_edges: 47 / 79800
+median_abs_qcfc: 0.0778
+qcfc_dd_r: -0.0372
+qcfc_dd_p: 7.3388e-26
+modularity_Q_mean: 0.2893
+modularity_Q_sd: 0.1170
+Q_vs_FD_r: -0.0841
+Q_vs_FD_p: 3.4529e-01
+dvars_mean: 19.1030
+dvars_sd: 5.3355
+tsnr_mean: 69.9129
+tsnr_sd: 18.7699
+gs_std_mean: 0.7283
+gs_std_sd: 0.3033
+
+old fc_significance_summary.txt:
+n_subjects: 128
+n_edges: 79800
+n_fc_significant: 70592
+pct_fc_significant: 88.4612
+mean_z_min: -0.0909
+mean_z_max: 1.0808
+median_abs_fc_r: 0.1211
+
+new summary.json:
+{
+  "source": "motion_corrected_st_v4",
+  "n_subjects": 128,
+  "n_edges": 79800,
+  "qcfc_n_significant": 47,
+  "qcfc_pct_significant": 0.05889724310776943,
+  "qcfc_median_abs_r": 0.07777652395269756,
+  "qcfc_dd_r": -0.03721171702261018,
+  "qcfc_dd_p": 7.338794041919012e-26,
+  "fc_n_significant": 70592,
+  "fc_pct_significant": 88.46115288220552,
+  "fc_median_abs_r": 0.1211392730474472,
+  "Q_mean": 0.2896257087995764,
+  "Q_sd": 0.1168829466167833,
+  "Q_vs_fd_r": -0.08552174907092042,
+  "Q_vs_fd_p": 0.33713754949050523,
+  "dvars_mean": 19.102955140173435,
+  "dvars_sd": 5.335531662732746,
+  "tsnr_mean": 69.91290035843849,
+  "tsnr_sd": 18.76987888449627,
+  "mean_fd_mean": 1.2438353173895975
+}
+

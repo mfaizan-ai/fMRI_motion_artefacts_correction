@@ -1,0 +1,34 @@
+# Pipeline-level QC (QC-FC, FC significance, modularity Q, DVARS, tSNR) of raw or denoised whole runs
+defaults:
+  - paths: maguire
+  - data: grade
+  - atlas: schaefer400
+  - _self_
+  - override hydra/job_logging: none
+  - override hydra/hydra_logging: none
+
+source: raw                # raw, or a folder name under denoised_root (a scripts/denoise.py output_name)
+source_root: ${paths.denoise_source_root}
+denoised_root: ${paths.denoise_output_root}  # ${paths.legacy_denoised_root} for old-repo runs, e.g. motion_corrected_st_v4
+qc_root: ${paths.repo_root}/motion_denoising_qc
+raw_output_name: original_data
+overwrite: false           # true = write into an existing, non-empty output folder
+max_subjects: null         # first N subjects only, for smoke tests
+
+high_pass_hz: 0.01         # cosine high-pass on the ROI time series
+edge_alpha: 0.05           # BH-FDR level for QC-FC and FC significance
+tsnr_std_floor: 1.0e-3     # nipype TSNR: voxels with std at or below this get tSNR 0
+dvars:                     # nipype compute_dvars defaults
+  intensity_normalization: 1000.0
+  variance_tol: 1.0e-7
+modularity:                # consensus Louvain, netneurotools B="negative_asym"
+  gamma: 1.0
+  repeats: 100
+  seed: 12345
+
+hydra:
+  run:
+    dir: ${qc_root}
+  output_subdir: null
+  job:
+    chdir: false

@@ -6,6 +6,7 @@ __pycache__/
 runs/*
 !runs/_equivalence/
 .vscode/
+motion_denoising_qc/
 
 # run outputs and large artefacts
 outputs/
