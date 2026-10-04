@@ -56,6 +56,15 @@ def select_runs(chunk_metadata_csv: str, which: str) -> pd.DataFrame:
     raise ValueError(f"unknown run selection {which!r}")
 
 
+def check_output_root(output_root: Path, overwrite: bool) -> None:
+    """Exit if output_root already holds files, unless overwrite is set."""
+    # Hydra creates the (empty) run dir before main(), so test for contents, not existence
+    if overwrite or not output_root.exists() or not any(output_root.iterdir()):
+        return
+    raise SystemExit(f"{output_root} already exists and is not empty. Choose a new output_name=<name>, "
+                     f"or pass overwrite=true to overwrite its runs.")
+
+
 def run_denoise(cfg) -> None:
     model, ckpt = load_model(cfg.checkpoint, cfg.device)
     ckpt_cfg = config_from_checkpoint(ckpt)
