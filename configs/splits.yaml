@@ -1,0 +1,23 @@
+# Subject-level split of a chunk dataset; the output is frozen (rerun with overwrite=true only on purpose)
+defaults:
+  - paths: maguire
+  - _self_
+  - override hydra/job_logging: disabled
+  - override hydra/hydra_logging: disabled
+
+chunk_metadata_csv: ${paths.grade_chunk_metadata_csv}
+name: grade_subject_split
+output_csv: ${paths.repo_root}/splits/${name}.csv
+overwrite: false
+seed: 0
+ratios: {train: 0.70, val: 0.15, test: 0.15}
+stratify:                       # strata = age_group x motion_bin
+  high_motion_grades: [Grade 4, Grade 5, Grade 6]
+  n_motion_bins: 3              # quantile bins of each subject's share of high-motion chunks
+
+hydra:
+  run:
+    dir: .
+  output_subdir: null
+  job:
+    chdir: false
