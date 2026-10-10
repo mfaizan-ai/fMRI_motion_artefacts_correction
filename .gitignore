@@ -17,3 +17,8 @@ wandb/
 *.nii
 *.nii.gz
 CLAUDE.local.md
+
+
+runs/_equivalence/**/*.npy
+runs/_equivalence/**/*.png
+runs/_equivalence/**/*.pkl

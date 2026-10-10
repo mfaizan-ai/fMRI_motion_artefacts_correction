@@ -66,11 +66,14 @@ def test_plot_pipeline_qc_writes_every_figure_from_synthetic_results(tmp_path):
     with initialize(config_path="../configs", version_base="1.3"):
         cfg = compose("plot_pipeline_qc", overrides=[f"qc_root={tmp_path}", f"centroids_csv={tmp_path}/centroids.csv",
                                                      "fc_top_percent=50", "distribution.kde_points=20",
-                                                     "distance.bins=10", "distance.smooth_sigma=1", "n_boot=50"])
+                                                     "distance.bins=10", "distance.smooth_sigma=1"])
     cfg.sources, cfg.labels, cfg.colors = ["raw", "model"], ["Raw", "Model"], ["#7F7F7F", "#0072B2"]
     figures = plot_pipeline_qc(cfg)
-    assert set(figures) == {"qc_fc_distribution", "qc_fc_matrix", "qc_fc_distance_dependence",
+    assert set(figures) == {"qc_fc_distribution", "qc_fc_matrix", "fc_matrix", "qc_fc_distance_dependence",
                             "qc_fc_significant_edges", "modularity_q", "fc_significant_edges"}
+    *panels, colorbar = figures["qc_fc_matrix"].axes  # colour bar spans exactly the last matrix
+    assert colorbar.get_position().height == pytest.approx(panels[-1].get_position().height)
     assert len(figures["qc_fc_distribution"].axes) == 2  # one panel per source, side by side
     box_faces = [to_hex(box.get_facecolor(), keep_alpha=False) for box in figures["modularity_q"].axes[0].patches]
     assert box_faces == ["#7f7f7f", "#0072b2"]  # one colour per source
+    
