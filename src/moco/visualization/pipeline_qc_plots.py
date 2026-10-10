@@ -15,7 +15,6 @@ from omegaconf import DictConfig
 from scipy import ndimage, stats
 
 from moco.evaluation.qc_metrics import upper_triangle
-from moco.visualization.test_visualization import bootstrap_median_ci
 
 
 def load_source(source_dir: Path) -> dict:
@@ -63,31 +62,55 @@ def plot_qcfc_distributions(data: dict, labels: dict, colors: dict, cfg: DictCon
         density /= density.max()  # heights are not compared, only shapes and medians
         ax.fill_between(grid, 0, density, color=colors[name], alpha=style.fill_alpha, linewidth=0, zorder=2)
         ax.plot(grid, density, color=colors[name], linewidth=1.5, zorder=3)
-        ax.axvline(0, color="black", linewidth=2, zorder=4)
+        ax.plot([0, 0], [0, np.interp(0, grid, density)], color="black", linewidth=2, zorder=4)  # stop at the curve
         ax.text(0.97, 0.95, rf"Median $|QC\mathrm{{-}}FC|$ = {np.median(np.abs(r)):.3f}", transform=ax.transAxes,
                 ha="right", va="top", fontsize=style.text_size, fontweight="bold")
         ax.set_title(labels[name], fontsize=style.title_size, fontweight="bold", color=colors[name])
-        ax.set_xlabel("QC–FC correlation (r)", fontsize=style.text_size)
         ax.set_xlim(xlim)
         ax.set_ylim(0, 1.12)
         ax.set_yticks([])
         ax.spines[["top", "right", "left"]].set_visible(False)
+    fig.supxlabel("QC–FC correlation (r)", fontsize=style.text_size + 1)
     fig.suptitle("QC-FC distribution")
     return fig
 
 
-def plot_qcfc_matrices(data: dict, labels: dict, cfg: DictConfig) -> Figure:
-    """QC-FC r matrices side by side on one shared colour scale."""
-    fig, axes = plt.subplots(1, len(data), figsize=(cfg.matrix.panel_size * len(data), cfg.matrix.panel_size),
-                             squeeze=False, constrained_layout=True)
-    for ax, (name, source) in zip(axes[0], data.items(), strict=True):
-        image = ax.imshow(source["qc_fc_r"], cmap="RdBu_r", vmin=-1, vmax=1, interpolation="nearest")
-        ax.set_title(labels[name])
-        ax.set_xlabel("ROI")
+def _matched_colorbar(fig: Figure, ax: plt.Axes, mappable, label: str, cfg: DictConfig) -> None:
+    """Colour bar beside `ax`, exactly as tall as its drawn box."""
+    fig.canvas.draw()  # applies equal aspect / glass-brain extents, so the box is final
+    box = ax.get_position()
+    cax = fig.add_axes((box.x1 + cfg.colorbar.pad, box.y0, cfg.colorbar.width, box.height))
+    fig.colorbar(mappable, cax=cax).set_label(label, fontsize=cfg.colorbar.label_size)
+
+
+def _matrix_row(matrices: dict, labels: dict, cmap: str, vmin: float, vmax: float, colorbar_label: str,
+                title: str, cfg: DictConfig) -> Figure:
+    """(R, R) matrices side by side on one colour scale, one shared ROI label per axis."""
+    style = cfg.matrix
+    fig, axes = plt.subplots(1, len(matrices), figsize=(style.panel_size * len(matrices), style.panel_size),
+                             squeeze=False)
+    fig.subplots_adjust(left=0.05, right=0.93, bottom=0.12, top=0.86, wspace=style.wspace)
+    for ax, (name, matrix) in zip(axes[0], matrices.items(), strict=True):
+        image = ax.imshow(matrix, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="nearest")
+        ax.set_title(labels[name], fontsize=style.title_size)
     axes[0, 0].set_ylabel("ROI")
-    fig.colorbar(image, ax=axes[0].tolist(), label="QC-FC (r)", shrink=cfg.matrix.colorbar_shrink)
-    fig.suptitle("QC-FC matrix")
+    fig.supxlabel("ROI", y=0.02)
+    _matched_colorbar(fig, axes[0, -1], image, colorbar_label, cfg)
+    fig.suptitle(title, fontsize=style.title_size + 2)
     return fig
+
+
+def plot_qcfc_matrices(data: dict, labels: dict, cfg: DictConfig) -> Figure:
+    """QC-FC r matrices on a shared ±1 scale."""
+    return _matrix_row({n: s["qc_fc_r"] for n, s in data.items()}, labels, "RdBu_r", -1.0, 1.0, "QC-FC (r)",
+                       "QC-FC matrix", cfg)
+
+
+def plot_fc_matrices(data: dict, labels: dict, cfg: DictConfig) -> Figure:
+    """Group-mean Fisher-z FC matrices on a shared symmetric scale (diagonal is NaN, drawn blank)."""
+    vmax = max(float(np.nanmax(np.abs(s["fc_mean_z"]))) for s in data.values())
+    return _matrix_row({n: s["fc_mean_z"] for n, s in data.items()}, labels, "RdBu_r", -vmax, vmax,
+                       "Mean Fisher-z FC", "FC matrix", cfg)
 
 
 def _density_contours(ax: plt.Axes, x: np.ndarray, y: np.ndarray, cfg: DictConfig) -> None:
@@ -128,7 +151,7 @@ def plot_distance_dependence(data: dict, labels: dict, cfg: DictConfig) -> Figur
 
 
 def plot_modularity(data: dict, labels: dict, colors: dict, cfg: DictConfig) -> Figure:
-    """Box plot of per-subject modularity Q per source, medians joined with their bootstrap CI."""
+    """Box plot of per-subject modularity Q, one coloured box per source, no outlier points."""
     style = cfg.modularity
     names = list(data)
     q = [data[n]["subjects"]["Q"].to_numpy() for n in names]
@@ -142,20 +165,9 @@ def plot_modularity(data: dict, labels: dict, colors: dict, cfg: DictConfig) -> 
             line.set(color=style.edge, linewidth=1.2)
     for line in box["medians"]:
         line.set(color=style.edge, linewidth=2)
-
-    rng = np.random.default_rng(cfg.seed)
-    medians = np.array([np.median(values) for values in q])
-    bounds = np.array([bootstrap_median_ci(values, cfg.n_boot, cfg.ci, rng) for values in q])  # (sources, 2)
-    # asymmetric error bars: the bootstrap CI of the median need not be centred on it
-    yerr = np.vstack([medians - bounds[:, 0], bounds[:, 1] - medians])
-    ax.errorbar(x, medians, yerr=yerr, color=style.trend, linewidth=2, marker="o", markersize=6, capsize=5,
-                zorder=4, label=f"Median, {cfg.ci:.0%} bootstrap CI")
     ax.set_xticks(x, [f"{labels[n]}\n(n={len(values)})" for n, values in zip(names, q, strict=True)])
     ax.set_ylabel("Modularity Q")
     ax.set_title("Modularity Q")
-    # headroom so the legend never sits on a whisker
-    ax.set_ylim(top=ax.get_ylim()[1] + style.legend_headroom * np.ptp(ax.get_ylim()))
-    ax.legend(frameon=False, loc="upper left")
     ax.yaxis.grid(True, color="#e0e0e0", linewidth=0.6)
     ax.set_axisbelow(True)
     ax.spines[["top", "right"]].set_visible(False)
@@ -164,8 +176,8 @@ def plot_modularity(data: dict, labels: dict, colors: dict, cfg: DictConfig) -> 
 
 
 def plot_connectomes(matrices: dict, titles: dict, coords: np.ndarray, cmap: str, vmin: float, vmax: float,
-                     colorbar_label: str, edge_width: float | None, style: DictConfig, cfg: DictConfig) -> Figure:
-    """Glass-brain edges per source, stacked in rows or side by side, on a shared colour scale.
+                     colorbar_label: str, edge_width: float | None, title: str, cfg: DictConfig) -> Figure:
+    """One glass brain per source (cfg.connectome.display_mode), side by side on a shared colour scale.
 
     Args:
         matrices: source name -> (R, R) edge weights, 0 where an edge is not drawn.
@@ -176,41 +188,37 @@ def plot_connectomes(matrices: dict, titles: dict, coords: np.ndarray, cmap: str
         vmax: Upper colour limit.
         colorbar_label: Colour bar label.
         edge_width: Fixed edge width, or None to let nilearn scale width by |weight|.
-        style: Layout block, cfg.connectome.qcfc or cfg.connectome.fc.
+        title: Figure title.
         cfg: Composed `configs/plot_pipeline_qc.yaml`.
     """
+    style = cfg.connectome
     n = len(matrices)
-    n_rows, n_cols = (1, n) if style.side_by_side else (n, 1)
     width, height = style.panel_size
-    fig = plt.figure(figsize=(width * n_cols, height * n_rows))
+    fig = plt.figure(figsize=(width * n, height))
     edge_kwargs = {"alpha": 1.0} if edge_width is None else {"alpha": 1.0, "linewidth": edge_width}
-    # panels fill [0, 0.92] in x, leaving room for the colour bar; each keeps a strip on top for its title
-    panel_w, panel_h = 0.92 / n_cols, 1 / n_rows
-    title_h = style.title_space * panel_h
+    # panels fill [0, 0.92] in x, leaving room for the colour bar; the top strip holds titles
+    panel_w, top = 0.92 / n, 1 - style.title_space
     for i, (name, matrix) in enumerate(matrices.items()):
-        left, bottom = (i % n_cols) * panel_w, 1 - (i // n_cols + 1) * panel_h
-        plotting.plot_connectome(
-            matrix, coords, node_color=cfg.connectome.node_color, node_size=cfg.connectome.node_size,
-            edge_cmap=cmap, edge_vmin=vmin, edge_vmax=vmax, edge_kwargs=edge_kwargs,
-            display_mode=style.display_mode, figure=fig, axes=(left, bottom, panel_w, panel_h - title_h),
-            annotate=False, colorbar=False,
+        display = plotting.plot_connectome(
+            matrix, coords, node_color=style.node_color, node_size=style.node_size, edge_cmap=cmap,
+            edge_vmin=vmin, edge_vmax=vmax, edge_kwargs=edge_kwargs, display_mode=style.display_mode,
+            figure=fig, axes=(i * panel_w, 0.0, panel_w, top), annotate=False, colorbar=False,
         )
-        fig.text(left + panel_w / 2, bottom + panel_h - title_h / 2, titles[name], ha="center", va="center",
-                 fontsize=style.title_size)
-    colorbar_ax = fig.add_axes((0.935, 0.15, 0.015, 0.7))
+        fig.text((i + 0.5) * panel_w, top, titles[name], ha="center", va="bottom", fontsize=style.title_size)
+    brain_ax = next(iter(display.axes.values())).ax
     mappable = plt.cm.ScalarMappable(cmap=cmap, norm=Normalize(vmin=vmin, vmax=vmax))
-    fig.colorbar(mappable, cax=colorbar_ax).set_label(colorbar_label, fontsize=12)
+    _matched_colorbar(fig, brain_ax, mappable, colorbar_label, cfg)
+    fig.suptitle(title, y=1.02, fontsize=style.title_size + 2)
     return fig
 
 
 def qcfc_connectomes(data: dict, labels: dict, coords: np.ndarray, cfg: DictConfig) -> Figure:
     """All FDR-significant QC-FC edges per source, coloured green -> red by |QC-FC r|."""
     matrices = {n: np.where(s["qc_fc_fdr_significant"], np.abs(s["qc_fc_r"]), 0.0) for n, s in data.items()}
-    titles = {n: f"{labels[n]}: QC-FC significant edges (n={s['summary']['qcfc_n_significant']:,})"
-              for n, s in data.items()}
+    titles = {n: f"{labels[n]} (n = {s['summary']['qcfc_n_significant']:,})" for n, s in data.items()}
     vmax = max(float(m.max()) for m in matrices.values())
     return plot_connectomes(matrices, titles, coords, "RdYlGn_r", 0.0, vmax, "|QC-FC r|",
-                            cfg.connectome.qcfc_edge_width, cfg.connectome.qcfc, cfg)
+                            cfg.connectome.qcfc_edge_width, "QC-FC significant edges (FDR)", cfg)
 
 
 def fc_connectomes(data: dict, labels: dict, coords: np.ndarray, cfg: DictConfig) -> Figure:
@@ -219,11 +227,10 @@ def fc_connectomes(data: dict, labels: dict, coords: np.ndarray, cfg: DictConfig
     for name, source in data.items():
         keep, threshold = top_edges(source["fc_mean_z"], source["fc_significant"], cfg.fc_top_percent)
         matrices[name] = np.where(keep, source["fc_mean_z"], 0.0)
-        titles[name] = (f"{labels[name]}: FC significant edges\ntop {cfg.fc_top_percent:g}% by |z| "
-                        f"(|z| ≥ {threshold:.3f}, n={int(keep.sum()) // 2:,})")
+        titles[name] = f"{labels[name]} (n = {int(keep.sum()) // 2:,}, |z| ≥ {threshold:.2f})"
     vmax = max(float(np.abs(m).max()) for m in matrices.values())
     return plot_connectomes(matrices, titles, coords, "RdBu_r", -vmax, vmax, "Mean Fisher-z FC", None,
-                            cfg.connectome.fc, cfg)
+                            f"FC significant edges, top {cfg.fc_top_percent:g}% by |z|", cfg)
 
 
 def plot_pipeline_qc(cfg: DictConfig) -> dict[str, Figure]:
@@ -249,6 +256,7 @@ def plot_pipeline_qc(cfg: DictConfig) -> dict[str, Figure]:
     return {
         "qc_fc_distribution": plot_qcfc_distributions(data, labels, colors, cfg),
         "qc_fc_matrix": plot_qcfc_matrices(data, labels, cfg),
+        "fc_matrix": plot_fc_matrices(data, labels, cfg),
         "qc_fc_distance_dependence": plot_distance_dependence(data, labels, cfg),
         "qc_fc_significant_edges": qcfc_connectomes(data, labels, coords, cfg),
         "modularity_q": plot_modularity(data, labels, colors, cfg),

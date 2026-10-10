@@ -73,7 +73,6 @@ This is a port of `motion_denoising_measure/denoising_evaluation.py` from the or
 old-vs-new comparison is in `runs/_equivalence/pipeline_qc/`.
 
 ## Figures
-
 ```bash
 python scripts/visualization/plot_pipeline_qc.py
 python scripts/visualization/plot_pipeline_qc.py comparison_name=raw_vs_stv6 \
@@ -81,19 +80,23 @@ python scripts/visualization/plot_pipeline_qc.py comparison_name=raw_vs_stv6 \
 ```
 
 These figures follow the style of the original repo's `plot_denoising_qc.py`, with one panel or row
-per source. The default compares raw, stv4 and stv6. `sources` lists folders under
+per source. `sources` lists folders under
 `motion_denoising_qc/`, `labels` gives one plot label per source and `colors` one colour per source. All sources must have been
 computed on the same subjects. The script runs on CPU in under a minute and writes to
 `motion_denoising_qc/figures/<comparison_name>/`:
 
 | File | Shows |
 |---|---|
-| `qc_fc_distribution.png` | Ciric-style QC-FC density, one panel per source side by side, with median \|QC-FC\| |
+| `qc_fc_distribution.png` | Ciric-style QC-FC density, one panel per source, zero line clipped at the curve, with median \|QC-FC\| |
 | `qc_fc_matrix.png` | 400×400 QC-FC r matrices on a shared ±1 scale |
+| `fc_matrix.png` | 400×400 group-mean Fisher-z FC matrices on a shared symmetric scale |
 | `qc_fc_distance_dependence.png` | QC-FC r against ROI distance: density contours, zero line, red linear fit, QC-FC-DD r |
-| `qc_fc_significant_edges.png` | glass brain of every FDR-significant QC-FC edge, coloured by \|r\|, one row per source |
-| `modularity_q.png` | box plot of per-subject Q, one colour per source (no outlier points); medians joined across sources with their 95% bootstrap CI |
-| `fc_significant_edges.png` | axial glass brain per source, side by side, of the strongest `fc_top_percent` % (default 2) of significant FC edges, signed mean Fisher-z |
+| `qc_fc_significant_edges.png` | sagittal glass brain per source of every FDR-significant QC-FC edge, coloured by \|r\| |
+| `modularity_q.png` | box plot of per-subject Q, one colour per source (no outlier points) |
+| `fc_significant_edges.png` | sagittal glass brain per source of the strongest `fc_top_percent` % (default 2) of significant FC edges, signed mean Fisher-z, with the \|z\| threshold |
+
+Every figure has one panel per source in a single row. Matrix and glass-brain colour bars are drawn as
+tall as the panels. The default compares Raw, stv4, stv6_convlstm and st_fc_beta_v1.
 
 The original repo drew the distance-dependence density with seaborn. Here it is a smoothed 2-D histogram
 with the same contour levels, which looks the same without the extra dependency. Glass-brain node
