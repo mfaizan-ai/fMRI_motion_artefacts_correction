@@ -1,0 +1,48 @@
+===== train_data_raw_preprocessed vs original_data, order A
+roi      subjects 46 same order True  per-subject ISC max |old - new| = 1.939e-05
+network  subjects 46 same order True  per-subject ISC max |old - new| = 8.700e-06
+network ISFC group max |old - new| = 6.943e-07
+===== train_data_raw_preprocessed vs original_data, order B
+roi      subjects 42 same order True  per-subject ISC max |old - new| = 1.338e-05
+network  subjects 42 same order True  per-subject ISC max |old - new| = 1.136e-05
+network ISFC group max |old - new| = 5.554e-07
+===== train_data_raw_preprocessed vs original_data, order C
+roi      subjects 39 same order True  per-subject ISC max |old - new| = 1.316e-05
+network  subjects 39 same order True  per-subject ISC max |old - new| = 1.160e-05
+network ISFC group max |old - new| = 7.527e-07
+===== train_data_raw_preprocessed vs original_data, order D
+roi      subjects 40 same order True  per-subject ISC max |old - new| = 1.469e-05
+network  subjects 40 same order True  per-subject ISC max |old - new| = 1.152e-05
+network ISFC group max |old - new| = 9.187e-07
+===== train_data_raw_preprocessed vs original_data, order E
+roi      subjects 42 same order True  per-subject ISC max |old - new| = 1.373e-05
+network  subjects 42 same order True  per-subject ISC max |old - new| = 9.532e-06
+network ISFC group max |old - new| = 5.392e-07
+===== train_data_raw_preprocessed vs original_data, order F
+roi      subjects 40 same order True  per-subject ISC max |old - new| = 1.232e-05
+network  subjects 40 same order True  per-subject ISC max |old - new| = 9.077e-06
+network ISFC group max |old - new| = 8.894e-07
+===== denoised_st_v4 vs motion_corrected_st_v4_all_video_runs, order A
+roi      subjects 46 same order True  per-subject ISC max |old - new| = 2.864e-05
+network  subjects 46 same order True  per-subject ISC max |old - new| = 2.606e-05
+network ISFC group max |old - new| = 2.674e-06
+===== denoised_st_v4 vs motion_corrected_st_v4_all_video_runs, order B
+roi      subjects 42 same order True  per-subject ISC max |old - new| = 2.444e-05
+network  subjects 42 same order True  per-subject ISC max |old - new| = 2.180e-05
+network ISFC group max |old - new| = 2.558e-06
+===== denoised_st_v4 vs motion_corrected_st_v4_all_video_runs, order C
+roi      subjects 39 same order True  per-subject ISC max |old - new| = 2.766e-05
+network  subjects 39 same order True  per-subject ISC max |old - new| = 2.420e-05
+network ISFC group max |old - new| = 2.767e-06
+===== denoised_st_v4 vs motion_corrected_st_v4_all_video_runs, order D
+roi      subjects 40 same order True  per-subject ISC max |old - new| = 3.111e-05
+network  subjects 40 same order True  per-subject ISC max |old - new| = 2.985e-05
+network ISFC group max |old - new| = 1.538e-06
+===== denoised_st_v4 vs motion_corrected_st_v4_all_video_runs, order E
+roi      subjects 42 same order True  per-subject ISC max |old - new| = 3.548e-05
+network  subjects 42 same order True  per-subject ISC max |old - new| = 2.347e-05
+network ISFC group max |old - new| = 3.790e-06
+===== denoised_st_v4 vs motion_corrected_st_v4_all_video_runs, order F
+roi      subjects 40 same order True  per-subject ISC max |old - new| = 2.939e-05
+network  subjects 40 same order True  per-subject ISC max |old - new| = 4.290e-05
+network ISFC group max |old - new| = 2.539e-06

@@ -24,7 +24,7 @@ Only checkpoints trained on the grade dataset are valid inputs, for example `st_
 ## Usage
 
 ```bash
-sbatch slurm/denoise.sbatch checkpoint=<path> output_name=<folder> [runs=first_2mo|all_video] [overwrite=true]
+sbatch slurm/denoise.sbatch checkpoint=<path> output_name=<folder> [runs=first_2mo|all_2mo|all_video] [overwrite=true]
 ```
 
 Submit from the repo root. The sbatch file only requests a GPU, activates the `moco` environment and
@@ -34,7 +34,7 @@ passes the overrides on to `scripts/denoise.py`. Every other setting comes from 
 |---|---|---|
 | `checkpoint` | required | path to a `.pt` checkpoint |
 | `output_name` | required | output folder, created under `paths.denoise_output_root` |
-| `runs` | `first_2mo` | `first_2mo`: first video run of each 2-month subject. `all_video`: every video run, both ages |
+| `runs` | `first_2mo` | `first_2mo`: first video run of each 2-month subject (pipeline QC). `all_2mo`: every video run of the 2-month subjects (ISC). `all_video`: every video run, both ages |
 | `overwrite` | `false` | the script exits if the output folder already has files, unless this is `true` |
 | `source_root` | `paths.denoise_source_root` | root of the input runs |
 | `output_root` | `<denoise_output_root>/<output_name>` | override to write somewhere else |
@@ -60,7 +60,6 @@ python scripts/denoise.py checkpoint=runs/st_v4_ddp_disc_temporal_roi/best_model
 ```
 
 ## Output
-
 ```
 <denoise_output_root>/<output_name>/
 ├── _subject_id_<ID>/_referencetype_standard/_run_<NNN>_session_<N>_task_name_videos/
