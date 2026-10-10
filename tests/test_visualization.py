@@ -9,6 +9,7 @@ from matplotlib.colors import to_hex
 from moco.evaluation.qc_metrics import edges_to_matrix
 from moco.visualization.pipeline_qc_plots import plot_pipeline_qc, top_edges
 from moco.visualization.test_visualization import bootstrap_median_ci, plot_test_metrics
+from moco.visualization.training_plots import plot_training
 
 
 def test_bootstrap_median_ci_brackets_median_and_is_reproducible():
@@ -76,4 +77,19 @@ def test_plot_pipeline_qc_writes_every_figure_from_synthetic_results(tmp_path):
     assert len(figures["qc_fc_distribution"].axes) == 2  # one panel per source, side by side
     box_faces = [to_hex(box.get_facecolor(), keep_alpha=False) for box in figures["modularity_q"].axes[0].patches]
     assert box_faces == ["#7f7f7f", "#0072b2"]  # one colour per source
-    
+
+
+def test_plot_training_skips_unlogged_losses_and_keeps_each_loss_colour():
+    epochs = np.arange(1, 11)
+    train = pd.DataFrame({"epoch": epochs, "G_adv": 0.5, "G_cyc": 0.02, "G_idt": 0.01, "G_total": 1.0,
+                          "G_roi_cycle": 0.005, "D_A": 0.2, "D_B": 0.2})  # no G_roi_adv / G_beta logged
+    val = pd.DataFrame({"epoch": [5, 10], "val_score": [1.0, 2.0], "val_cyc": [0.03, 0.02]})
+    with initialize(config_path="../configs", version_base="1.3"):
+        cfg = compose("plot_training", overrides=["run_dir=unused", "output_dir=unused"])
+    figures = plot_training(train, val, "run", cfg)
+    assert set(figures) == {"generator_losses", "discriminator_losses", "validation_metrics"}
+    titles = [ax.get_title(loc="left") for ax in figures["generator_losses"].axes if ax.get_visible()]
+    assert titles == ["Adversarial", "Cycle consistency", "Identity", "ROI time-series cycle", "Total generator"]
+    # ROI cycle keeps its config slot (5th colour) even though ROI adversarial, slot 4, was not logged
+    roi_cycle = next(ax for ax in figures["generator_losses"].axes if ax.get_title(loc="left").startswith("ROI time"))
+    assert roi_cycle.lines[-1].get_color() == cfg.colors.series[4]
