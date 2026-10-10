@@ -8,7 +8,7 @@ defaults:
 
 checkpoint: ???            # any checkpoint, from this repo or the original one
 output_name: ???           # folder under paths.denoise_output_root, e.g. motion_corrected_st_v4
-runs: first_2mo            # first_2mo | all_video
+runs: first_2mo            # first_2mo | all_2mo | all_video
 overwrite: false           # true = write into an existing, non-empty output folder
 source_root: ${paths.denoise_source_root}
 output_root: ${paths.denoise_output_root}/${output_name}

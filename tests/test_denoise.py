@@ -57,3 +57,17 @@ def test_hydra_logging_keeps_module_loggers(config_name):
         cfg = compose(config_name, return_hydra_config=True)
     for preset in (cfg.hydra.job_logging, cfg.hydra.hydra_logging):
         assert preset.disable_existing_loggers is False
+
+
+def test_select_runs_all_2mo_keeps_every_2mo_video_run_and_drops_9mo(tmp_path):
+    from moco.evaluation.denoise import select_runs
+
+    rows = [("S1", "2mo", "videos", "1", "001"), ("S1", "2mo", "videos", "1", "001"),  # two chunks, one run
+            ("S1", "2mo", "videos", "1", "002"), ("S1", "2mo", "rest10", "1", "003"),
+            ("S1A", "9mo", "videos", "1", "001"), ("S2", "2mo", "videos", "2", "001")]
+    pd.DataFrame([{"subject_id": s, "age_group": a, "task": t, "session_id": ses, "run_id": run,
+                   "source_volume_path": f"{s}_{ses}_{run}.nii.gz", "fd_path": "fd.txt", "tr_seconds": 0.61}
+                  for s, a, t, ses, run in rows]).to_csv(tmp_path / "chunks.csv", index=False)
+    runs = {which: select_runs(str(tmp_path / "chunks.csv"), which) for which in ("first_2mo", "all_2mo", "all_video")}
+    assert list(runs["all_2mo"]["run_id"]) == ["001", "002", "001"]  # zero-padded ids survive
+    assert len(runs["first_2mo"]) == 2 and len(runs["all_video"]) == 4

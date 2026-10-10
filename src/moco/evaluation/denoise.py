@@ -70,6 +70,7 @@ def select_runs(chunk_metadata_csv: str, which: str) -> pd.DataFrame:
     Args:
         chunk_metadata_csv: Chunk metadata CSV; one row per chunk, so runs are deduplicated here.
         which: "first_2mo" = first session/run of each 2-month subject (9-month visits end in "A"),
+            "all_2mo" = every video run of the 2-month subjects (what ISC needs),
             "all_video" = every video run at both ages.
 
     Returns:
@@ -77,16 +78,18 @@ def select_runs(chunk_metadata_csv: str, which: str) -> pd.DataFrame:
         sorted by subject.
 
     Raises:
-        ValueError: If `which` is not one of the two options.
+        ValueError: If `which` is not one of the three options.
     """
     meta = pd.read_csv(chunk_metadata_csv, dtype={"session_id": str, "run_id": str})  # keep "002", not 2
     video = meta[meta["task"] == "videos"]
     cols = ["subject_id", "session_id", "run_id", "source_volume_path", "fd_path", "tr_seconds"]
     if which == "all_video":
         return video[cols].drop_duplicates().sort_values(["subject_id", "session_id", "run_id"])
+    video = video[(video["age_group"] == "2mo") & ~video["subject_id"].str.endswith("A")]
+    runs = video[cols].drop_duplicates().sort_values(["subject_id", "session_id", "run_id"])
+    if which == "all_2mo":
+        return runs
     if which == "first_2mo":
-        video = video[(video["age_group"] == "2mo") & ~video["subject_id"].str.endswith("A")]
-        runs = video[cols].drop_duplicates().sort_values(["subject_id", "session_id", "run_id"])
         return runs.groupby("subject_id", as_index=False).first()
     raise ValueError(f"unknown run selection {which!r}")
 
