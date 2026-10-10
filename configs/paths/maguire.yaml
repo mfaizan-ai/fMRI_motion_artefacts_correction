@@ -20,3 +20,7 @@ legacy_denoised_root: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivativ
 
 # adult MNI Schaefer-400 centroids: node positions for glass-brain plots and the Yeo-7 network of each ROI
 schaefer_mni_centroids_csv: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/templates/rois/Schaefer2018_400Parcels_7Networks_order_FSLMNI152_1mm.Centroid_RAS.csv
+
+# ISC: per-order video segments (subject, run, start/end volume) and the derivative root its bold_path points at
+isc_segments_csv: /lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion-artefacts-correction/ISC_analysis/mapping_csv_for_isc/segments_mapping_each_sub_usable_filtered.csv
+isc_segments_bold_root: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/normalized_to_common_space
