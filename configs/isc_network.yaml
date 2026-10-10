@@ -1,0 +1,45 @@
+# Leave-one-out ISC of ROI and Yeo-7 network time series per video order, raw or denoised
+defaults:
+  - paths: maguire
+  - data: grade
+  - atlas: schaefer400
+  - _self_
+  - override hydra/job_logging: none
+  - override hydra/hydra_logging: none
+
+source: raw                # raw, or a folder name under denoised_root (a scripts/denoise.py output_name, runs=all_2mo)
+source_root: ${paths.denoise_source_root}
+denoised_root: ${paths.denoise_output_root}  # ${paths.legacy_denoised_root} for old-repo runs
+qc_root: ${paths.repo_root}/motion_denoising_qc
+raw_output_name: original_data
+output_subdir: isc_network  # results go to <qc_root>/<source>/isc_network/order_<order>/
+order: null                # one order label (A-F), or null for every order in segments_csv
+overwrite: false           # true = write into an existing, non-empty order folder
+
+segments_csv: ${paths.isc_segments_csv}
+segments_bold_root: ${paths.isc_segments_bold_root}  # root of the CSV's bold_path, swapped for source_root
+exclude_subject_suffix: A  # 9-month visits; the analysis uses the 2-month atlas
+centroids_csv: ${paths.schaefer_mni_centroids_csv}  # ROI label -> name, hence the Yeo-7 network
+
+seed: 0                    # bootstrap RNG, re-seeded per order
+n_boot: 10000              # subject-bootstrap resamples
+ci: 0.95
+alpha: 0.05                # BH-FDR level across networks, and separately across ROIs
+
+plot:
+  dpi: 200
+  isc_figsize: [6.5, 4.2]
+  isfc_figsize: [6.5, 5.5]
+  bar_color: "#2a78d6"
+  grid: "#e6e6e3"
+  text_primary: "#0b0b0b"
+  text_secondary: "#52514e"
+  title_size: 12
+  label_size: 10
+
+hydra:
+  run:
+    dir: ${qc_root}
+  output_subdir: null
+  job:
+    chdir: false
