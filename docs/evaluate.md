@@ -50,3 +50,16 @@ shaded by grade. Boxes show quartiles, with whiskers at 1.5 IQR. The lines join 
 | `n_boot`, `ci`, `seed` | `2000`, `0.95`, `0` | bootstrap settings for the median CI |
 
 Colours, labels and sizes are in `configs/plot_test.yaml`.
+
+## Training curves
+
+```bash
+python scripts/visualization/plot_training.py run_dir=<run folder> output_dir=runs/<name>/training_plots
+```
+
+Reads `train_losses.csv` and `val_metrics.csv` from `run_dir`. Runs from the original repo's trainer
+work too. Keep `output_dir` in this repo, because the original repo is read-only. The script writes
+`generator_losses.png`, `discriminator_losses.png` and `validation_metrics.png`. Each panel shows one
+logged term: the raw per-epoch value is drawn faintly, with a 5-epoch rolling mean (`smooth_window`)
+over it. Each loss has its own colour, fixed by its place in the config, so it keeps that colour
+across runs. A loss that the run did not log, such as ROI or Huber, is skipped. Panel lists and titles are in `configs/plot_training.yaml`.
