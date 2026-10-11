@@ -1,4 +1,4 @@
-"""Correct whole video runs: python scripts/denoise.py checkpoint=<path> output_name=<folder> [runs=all_video]"""
+"""Denoise runs: python scripts/denoise.py checkpoint=<path> output_name=<name> [runs=first_2mo|all_2mo|all_video]"""
 from pathlib import Path
 
 import hydra
