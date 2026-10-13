@@ -1,65 +1,16 @@
 # Debugging on a compute node
 
-Step through a script in the VS Code debugger while it runs on a Maguire compute node. Don't debug on
-the login node: the scripts load large checkpoints, use the GPU and read real data.
+Use the VS Code debugger to step through a Python script running on a Maguire compute node. Keep GPU and data-heavy work inside a Slurm allocation.
 
-The script runs on the compute node under `debugpy`, listening on a port. VS Code, connected to the
-login node, attaches to that node and port.
+This guide assumes VS Code is connected to the login node through Remote SSH, with the repository open. The Python process runs on the compute node; VS Code attaches from the login node.
 
-## 1. Get a compute node
+Direct attachment requires the login node to reach the compute node's debug port. Follow the cluster's access policy. Binding debugpy to `0.0.0.0` exposes it on all network interfaces; anyone who can reach the port can execute code in the debugged process. If direct attachment is not permitted, use the cluster's supported SSH-forwarding setup.
 
-Request an interactive allocation (1 GPU, 32 CPUs, 48 GB, 3 h):
+## One-time setup: configure VS Code
 
-```bash
-salloc -N 1 --gpus=1 --cpus-per-task=32 --mem=48G --time=03:00:00
-```
+Install or enable the Python and Python Debugger extensions in the Remote SSH environment.
 
-Adjust the resources to the task; for pure logic without the GPU, drop `--gpus=1`. A personal wrapper
-script around this `salloc` works too.
-
-Once the allocation is granted, move your shell onto the node:
-
-```bash
-srun --jobid=$SLURM_JOBID --pty bash
-hostname          # must print a compute node, e.g. gpu02, not the login node; note it for step 4
-```
-
-## 2. Activate the environment
-
-```bash
-source ~/.bashrc && conda activate moco
-```
-
-## 3. Start the script under debugpy
-
-The script starts, then waits for the debugger before running any code.
-
-**Generic form**, from the project root:
-
-```bash
-python -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client \
-    scripts/<script>.py <hydra overrides>
-```
-
-**Example: denoising**
-
-```bash
-python -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client \
-    scripts/denoise.py checkpoint=runs/stv6_convlstm_cycleGANS/best_model.pt \
-    output_root=runs/_checks/debug_denoise overwrite=true
-```
-
-- Point the output at `runs/_checks/debug_<script>`, never at the shared derivatives folder.
-  `overwrite=true` lets you rerun into the same folder.
-- Hydra overrides go after the script name exactly as in a normal run; debugpy passes them through.
-- `-Xfrozen_modules=off` stops debugpy warning that breakpoints in the standard library may be missed.
-- If port 5678 is already in use on that node, for example by another session, pick another such as
-  5679 and use the same number in step 4.
-
-## 4. Attach VS Code
-
-Put this in `.vscode/launch.json` (local only; `.vscode/` is git-ignored). Set `host` to the node
-from `hostname` and `port` to the one in step 3:
+Create `.vscode/launch.json` in the repository root. If the file already exists, add the following configuration to its `configurations` list.
 
 ```json
 {
@@ -69,9 +20,15 @@ from `hostname` and `port` to the one in step 3:
             "name": "Attach to Slurm GPU",
             "type": "debugpy",
             "request": "attach",
-            "connect": {"host": "gpu02", "port": 5678},
+            "connect": {
+                "host": "gpu02",
+                "port": 5678
+            },
             "pathMappings": [
-                {"localRoot": "${workspaceFolder}", "remoteRoot": "${workspaceFolder}"}
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "${workspaceFolder}"
+                }
             ],
             "justMyCode": false
         }
@@ -79,53 +36,126 @@ from `hostname` and `port` to the one in step 3:
 }
 ```
 
-Set breakpoints, open **Run and Debug** in the left sidebar, choose **Attach to Slurm GPU** and press
-Start. The waiting script continues and stops at your first breakpoint.
+`gpu02` is an example. Replace it with the allocated node's hostname each session.
 
-### `launch.json` reference
+The identical path mappings assume the project is visible at the same absolute path on the login and compute nodes. If the paths differ, set `remoteRoot` to the compute-node project path. Here, `localRoot` means the workspace opened by VS Code on the login node.
 
-**Where it lives:** `<project root>/.vscode/launch.json`. If it doesn't exist, open **Run and Debug**
-and click "create a launch.json file", or create the folder and file by hand. It is git-ignored, so
-each machine or user keeps their own copy.
+`justMyCode: false` allows stepping into libraries such as PyTorch and Hydra. Use `true` to focus on your own code.
 
-| Setting | Value | What it does |
-|---|---|---|
-| `version` | `"0.2.0"` | Schema version of `launch.json`; always this value |
-| `configurations` | list | One entry per debug target; each appears by `name` in the Run and Debug dropdown |
-| `name` | `"Attach to Slurm GPU"` | Label shown in the dropdown; any text |
-| `type` | `"debugpy"` | Use the Python debugger (needs the Python / Python Debugger extensions) |
-| `request` | `"attach"` | Connect to a program that is already running and waiting (step 3), instead of `"launch"`, which would start it on the login node |
-| `connect.host` | `"gpu02"` | Node running the script; **change it each session** to the `hostname` from step 1 |
-| `connect.port` | `5678` | Must equal the port in `--listen 0.0.0.0:<port>` |
-| `pathMappings` | `${workspaceFolder}` → `${workspaceFolder}` | Translates file paths between VS Code and the node, so breakpoints land in the right file. The same on both sides because both see the same Lustre paths |
-| `justMyCode` | `false` | Let breakpoints and stepping go into library code (torch, nibabel, Hydra); `true` stays in project files only |
+Keep machine-specific settings out of commits. Check the repository's `.gitignore` before assuming `.vscode/launch.json` is ignored.
 
-**Updating it each session:** only `connect.host` usually changes, and occasionally `connect.port`.
-To debug several jobs at once, add one configuration per node or port, each with its own `name`:
+## 1. Request resources — login-node terminal
 
-```json
-{"name": "Attach gpu03:5679", "type": "debugpy", "request": "attach",
- "connect": {"host": "gpu03", "port": 5679},
- "pathMappings": [{"localRoot": "${workspaceFolder}", "remoteRoot": "${workspaceFolder}"}],
- "justMyCode": false}
-```
-
-## 5. Finish
-
-Stop the debugger once you have seen what you need. Most scripts loop over every subject or run, and
-there is no need to let them finish. Then give the node back:
+In the VS Code terminal, request an interactive allocation:
 
 ```bash
-exit    # leave the node shell (srun)
-exit    # end the allocation (salloc); otherwise it holds the GPU until the 3 h limit
+salloc -N 1 --ntasks=1 --gpus=1 --cpus-per-task=32 --mem=48G --time=03:00:00
 ```
+
+This example requests one node, one task, one GPU, 32 CPUs and 48 GB of memory for up to three hours. Adjust these resources to the script. Omit `--gpus=1` for a CPU-only task.
+
+Wait until Slurm grants the allocation. Note its job ID for cleanup.
+
+## 2. Enter the compute node — same terminal
+
+Start a shell inside the allocation:
+
+```bash
+srun --jobid="$SLURM_JOB_ID" --ntasks=1 --pty bash
+hostname
+```
+
+Check that `hostname` prints a compute node, such as `gpu02`, rather than the login node. Use this hostname in `launch.json`.
+
+## 3. Activate the environment — compute-node terminal
+
+```bash
+source ~/.bashrc
+conda activate moco
+```
+
+Change to the repository root if needed. Check the environment and, for GPU tasks, the allocated GPU:
+
+```bash
+python -c "import sys, debugpy; print(sys.executable); print(debugpy.__version__)"
+nvidia-smi
+```
+
+The Python path should belong to the `moco` environment. If importing debugpy fails, add it through the project's environment setup before continuing.
+
+## 4. Start the script — compute-node terminal
+
+From the repository root, start denoising under debugpy:
+
+```bash
+python -Xfrozen_modules=off -m debugpy \
+    --listen 0.0.0.0:5678 --wait-for-client \
+    scripts/denoise.py \
+    checkpoint=runs/stv6_convlstm_cycleGANS/best_model.pt \
+    output_name=debug_denoise \
+    output_root=runs/_checks/debug_denoise \
+    runs=first_2mo \
+    overwrite=true
+```
+
+Python starts debugpy and waits for VS Code before executing the target script. The terminal may remain quiet while it waits.
+
+- Keep debug output in a dedicated folder such as `runs/_checks/debug_denoise`.
+- Use `overwrite=true` only for a folder whose existing output you intend to reuse.
+- Put Hydra overrides after the script name, as in a normal run.
+- If port `5678` is occupied, choose another port and update `launch.json` to match.
+
+To debug another script, replace `scripts/denoise.py` and its overrides. Use arguments supported by that script.
+
+## 5. Attach — VS Code
+
+1. Update `connect.host` in `.vscode/launch.json` to the hostname from step 2.
+2. Check that `connect.port` matches the port from step 4.
+3. Set a breakpoint on an executable line in the script or a function it calls.
+4. Open **Run and Debug**, select **Attach to Slurm GPU**, and start debugging.
+
+The target script begins executing and pauses when it reaches a breakpoint. Inspect variables and step through the section you need to investigate.
+
+For later sessions, reuse this configuration and update the hostname and port as needed.
+
+## 6. Stop the script and release the allocation
+
+Disconnect the debugger. If Python is still running, press **Ctrl+C** in the compute-node terminal and wait for the shell prompt.
+
+Then exit both shells:
+
+```bash
+exit  # leave the compute-node shell started by srun
+exit  # leave the allocation shell started by salloc
+```
+
+To cancel the allocation explicitly, run `scancel` with the job ID recorded in step 1:
+
+```bash
+scancel <job-id>
+```
+
+Replace `<job-id>` with your allocation's numeric ID. Disconnecting VS Code alone does not release the Slurm allocation.
 
 ## Troubleshooting
 
-| Symptom | Fix |
+| Symptom | What to check |
 |---|---|
-| VS Code: "connection refused" or timeout | The `host` or `port` in `launch.json` doesn't match `hostname` / `--listen`, or the script has exited |
-| `hostname` shows the login node | You skipped `srun --jobid=$SLURM_JOBID --pty bash` |
-| `Address already in use` | Port taken on that node; use another and update `launch.json` |
-| Breakpoints are hollow / not hit | Attach before the code runs (`--wait-for-client`), and set breakpoints in the files under the project root |
-| `CUDA out of memory` or no GPU | Check `nvidia-smi` on the node; for pure logic, add `device=cpu` (slow but fine for stepping) |
+| `hostname` shows the login node | Enter the allocation using the `srun` command in step 2. |
+| `No module named debugpy` | Check the active Python environment and whether debugpy is installed there. |
+| Connection refused | Check the hostname and port, and confirm the debugpy process is still running. |
+| Connection timeout | Check whether the login node can reach the compute node's port and whether direct attachment is permitted. |
+| `Address already in use` | Choose another port and update both the debugpy command and `launch.json`. |
+| Breakpoints are hollow or never hit | Check path mappings, confirm VS Code shows the same source files as the target, and set breakpoints on executable lines. Use `--wait-for-client` for startup code. |
+| No GPU is available | Check the allocation request and `nvidia-smi` on the compute node. |
+| `CUDA out of memory` | Reduce the script's supported memory-demanding settings or check GPU memory use. Use CPU execution only if the script supports it. |
+| Allocation remains active after debugging | Stop the Python process, exit the allocation shell, or cancel the recorded job ID with `scancel`. |
+
+## References
+
+- [VS Code: Python debugging](https://code.visualstudio.com/docs/python/debugging)
+- [debugpy: command-line reference](https://github.com/microsoft/debugpy/wiki/Command-Line-Reference)
+- [debugpy: remote listening and script arguments](https://github.com/microsoft/debugpy/blob/main/README.md)
+- [Slurm: salloc](https://slurm.schedmd.com/salloc.html)
+- [Slurm: srun](https://slurm.schedmd.com/srun.html)
+- [Slurm: scancel](https://slurm.schedmd.com/scancel.html)

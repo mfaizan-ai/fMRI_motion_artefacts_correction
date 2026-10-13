@@ -1,0 +1,46 @@
+# Voxel-wise leave-one-subject-out ISC per video order, raw vs one denoising model (paired)
+defaults:
+  - paths: maguire
+  - _self_
+  - override hydra/job_logging: none
+  - override hydra/hydra_logging: none
+
+source: ???                # denoised folder under denoised_root (a scripts/denoise.py output_name, runs=all_2mo)
+source_root: ${paths.denoise_source_root}
+denoised_root: ${paths.denoise_output_root}  # ${paths.legacy_denoised_root} for old-repo runs
+qc_root: ${paths.repo_root}/motion_denoising_qc
+output_subdir: isc_voxel_wise  # results go to <qc_root>/<source>/isc_voxel_wise/order_<order>/
+order: null                # one order label (A-F), or null for every order in segments_csv
+overwrite: false           # true = write into an existing, non-empty order folder
+
+segments_csv: ${paths.isc_segments_csv}  # same segments as scripts/isc_network.py
+segments_bold_root: ${paths.isc_segments_bold_root}
+exclude_subject_suffix: A  # 9-month visits; the mask and atlas are 2-month templates
+segment_length: 234        # volumes per segment
+
+mask: ${paths.template_gm_mask_2mo}       # grey-matter mask, resampled onto the data grid
+bg_img: ${paths.template_t2w_2mo}         # background for the slice figures
+atlas: ${paths.atlas_2mo}
+centroids_csv: ${paths.schaefer_mni_centroids_csv}  # ROI label -> name, hence the Yeo-7 network
+networks: [Vis, SomMot, DorsAttn, SalVentAttn, Limbic, Cont, Default]  # table and figure order
+
+bootstrap:                 # subject bootstrap, the same draws for raw, corrected and corrected - raw
+  n_boot: 1000
+  seed: 0
+  ci: 0.95
+fdr_alpha: 0.05            # BH-FDR across voxels, per map
+
+plot:
+  dpi: 150
+  cuts: [-30, -18, -8, 0, 10, 20, 34]  # axial slices (mm) shown for every map
+  colors: {raw: "#2a78d6", corrected: "#eb6834"}
+  ink: "#1f1f1e"
+  muted: "#6b6a63"
+  grid: "#e6e5df"
+
+hydra:
+  run:
+    dir: ${qc_root}
+  output_subdir: null
+  job:
+    chdir: false
