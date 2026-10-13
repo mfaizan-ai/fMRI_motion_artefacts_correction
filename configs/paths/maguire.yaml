@@ -24,3 +24,7 @@ schaefer_mni_centroids_csv: /lustre/disk/home/shared/cusacklab/foundcog/bids/der
 # ISC: per-order video segments (subject, run, start/end volume) and the derivative root its bold_path points at
 isc_segments_csv: /lustre/disk/home/users/mfaizan/motion_correction/prototyping/motion-artefacts-correction/ISC_analysis/mapping_csv_for_isc/segments_mapping_each_sub_usable_filtered.csv
 isc_segments_bold_root: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/normalized_to_common_space
+
+# 2-month infant template (nihpd 02-05, 2 mm): grey-matter mask and T2w background for voxel-wise ISC
+template_gm_mask_2mo: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/templates/mask/nihpd_asym_02-05_fcgmask_2mm.nii.gz
+template_t2w_2mo: /lustre/disk/home/shared/cusacklab/foundcog/bids/derivatives/templates/mask/nihpd_asym_02-05_t2w_2mm.nii.gz
