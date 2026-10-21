@@ -1,0 +1,26 @@
+# Spatial Gaussian smoothing of raw or denoised runs, the input to voxel-wise ISC
+defaults:
+  - paths: maguire
+  - _self_
+  - override hydra/job_logging: none
+  - override hydra/hydra_logging: none
+
+source: ???                # raw, or a denoised folder under denoised_root (a scripts/denoise.py output_name)
+fwhm_mm: 4                 # kernel FWHM in mm (data are 2 mm isotropic); not a validated optimum for infants
+preserve_zero_background: true  # voxels zero at every time point (outside the brain mask) stay zero
+pattern: "**/*task-videos*.nii.gz"  # runs to smooth, relative to the input folder
+max_runs: null             # first N runs only, for smoke tests
+overwrite: false           # true = write into an existing, non-empty output folder
+
+source_root: ${paths.denoise_source_root}
+denoised_root: ${paths.denoise_output_root}  # ${paths.legacy_denoised_root} for old-repo runs
+smoothed_root: ${paths.smoothed_root}
+output_name: ${source}_fwhm-${fwhm_mm}mm
+output_root: ${smoothed_root}/${output_name}
+
+hydra:
+  run:
+    dir: ${output_root}
+  output_subdir: null
+  job:
+    chdir: false
