@@ -7,6 +7,7 @@ runs/*
 !runs/_equivalence/
 .vscode/
 motion_denoising_qc/
+notebooks/pybids_learning_demo/
 
 # run outputs and large artefacts
 outputs/
