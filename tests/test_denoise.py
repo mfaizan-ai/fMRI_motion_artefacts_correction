@@ -48,7 +48,7 @@ def test_write_manifest_pins_checkpoint_and_run_selection(tmp_path):
     assert manifest["runs"] == "first_2mo"
 
 
-@pytest.mark.parametrize("config_name", ["denoise", "evaluate", "splits", "train"])
+@pytest.mark.parametrize("config_name", ["denoise", "evaluate", "smooth", "splits", "train"])
 def test_hydra_logging_keeps_module_loggers(config_name):
     """Hydra's `disabled` preset silences every `moco.*` logger created at import, leaving job logs empty."""
     from hydra import compose, initialize
