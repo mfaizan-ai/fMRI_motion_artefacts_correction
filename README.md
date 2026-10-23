@@ -50,6 +50,9 @@ python scripts/train.py experiment=stv6_convlstm --cfg job --resolve
 # whole-run denoising and test metrics (any checkpoint, including the original repo's)
 sbatch slurm/denoise.sbatch checkpoint=runs/st_v4/best_model.pt output_name=motion_corrected_st_v4 runs=all_video
 sbatch slurm/evaluate.sbatch checkpoint=runs/st_v4/best_model.pt output_dir=runs/st_v4/test
+
+# spatial smoothing (raw or denoised) before voxel-wise ISC; see docs/smooth.md
+sbatch slurm/smooth.sbatch source=raw fwhm_mm=4
 ```
 
 Each run directory holds the resolved `config.yaml`, `run_info.jsonl` (git commit, dirty flag,
