@@ -8,6 +8,7 @@ runs/*
 .vscode/
 motion_denoising_qc/
 notebooks/pybids_learning_demo/
+notebooks/spatail_smootting/
 
 # run outputs and large artefacts
 outputs/
