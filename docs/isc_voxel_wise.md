@@ -19,6 +19,8 @@ sbatch slurm/isc_voxel_wise.sbatch source=motion_corrected_st_v4_all_video_runs 
     'denoised_root=${paths.legacy_denoised_root}'                                     # original-repo runs
 ```
 
+To run on spatially smoothed data, smooth raw and the denoised source first; see [smooth.md](smooth.md).
+
 | Option | Default | Meaning |
 |---|---|---|
 | `source` | required | denoised folder under `denoised_root`; raw is always analysed alongside it |
