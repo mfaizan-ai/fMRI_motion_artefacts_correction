@@ -46,7 +46,7 @@ def test_group_statistics_separates_signal_from_noise_and_masks_non_significant_
     rng = np.random.default_rng(1)
     subject_z = np.column_stack([rng.normal(0.3, 0.05, 30), rng.normal(0.0, 0.05, 30)]).astype(np.float32)
     stats = group_statistics(subject_z, bootstrap_counts(30, 500, seed=0), ci=0.95, alpha=0.05)
-    assert stats["p"][0] == pytest.approx(2 / 501)  # no resample reaches 0: smallest possible p
+    assert stats["p"][0] == pytest.approx(1 / 501)  # no shifted resample reaches the observed mean
     assert stats["p"][1] > 0.05
     assert stats["ci_low_z"][0] < stats["mean_z"][0] < stats["ci_high_z"][0]
     assert np.isfinite(stats["mean_z_fdr"][0]) and np.isnan(stats["mean_z_fdr"][1])
