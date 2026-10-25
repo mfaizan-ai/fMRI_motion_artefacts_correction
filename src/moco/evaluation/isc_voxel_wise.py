@@ -134,7 +134,7 @@ def bootstrap_counts(n_subjects: int, n_boot: int, seed: int) -> np.ndarray:
 
 
 def group_statistics(subject_z: np.ndarray, counts: np.ndarray, ci: float, alpha: float) -> dict[str, np.ndarray]:
-    """Group mean Fisher z per voxel with percentile CI, two-sided bootstrap p and BH-FDR.
+    """Group mean Fisher z per voxel with percentile CI, two-sided shifted-null bootstrap p and BH-FDR.
 
     Args:
         subject_z: (subjects, voxels).
@@ -147,11 +147,11 @@ def group_statistics(subject_z: np.ndarray, counts: np.ndarray, ci: float, alpha
     """
     boot = counts @ subject_z / subject_z.shape[0]  # (n_boot, voxels) bootstrap group means
     low, high = np.percentile(boot, [100 * (1 - ci) / 2, 100 * (1 + ci) / 2], axis=0)
-    # sign test on the bootstrap means; the +1 keeps p > 0, so the smallest p is 2 / (n_boot + 1)
-    tail = np.minimum((boot <= 0).sum(axis=0), (boot >= 0).sum(axis=0))
-    p = np.minimum(1.0, 2 * (tail + 1) / (len(boot) + 1))
-    significant, q = fdr(p, alpha)
     mean_z = subject_z.mean(axis=0)
+    # bootstrap means shifted to centre on H0: ISC = 0 (Hall & Wilson 1991); the +1 keeps p >= 1 / (n_boot + 1)
+    exceed = (np.abs(boot - mean_z) >= np.abs(mean_z)).sum(axis=0)
+    p = (exceed + 1) / (len(boot) + 1)
+    significant, q = fdr(p, alpha)
     return {"mean_z": mean_z, "ci_low_z": low, "ci_high_z": high, "p": p, "q_fdr": q,
             "mean_z_fdr": np.where(significant, mean_z, np.nan)}
 
