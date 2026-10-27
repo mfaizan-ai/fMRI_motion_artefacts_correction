@@ -9,6 +9,7 @@ runs/*
 motion_denoising_qc/
 notebooks/pybids_learning_demo/
 notebooks/spatail_smootting/
+zip_files/
 
 # run outputs and large artefacts
 outputs/
